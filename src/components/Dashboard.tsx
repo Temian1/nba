@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { Filter, TrendingUp, BarChart3, Target, Clock, Home, Plane, Star, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import PlayerSearch from './PlayerSearch';
@@ -22,8 +22,8 @@ interface PlayerData {
   id: number;
   first_name: string;
   last_name: string;
-  position?: string;
-  team?: {
+  position: string;
+  team: {
     id: number;
     name: string;
     abbreviation: string;
@@ -34,7 +34,40 @@ interface PlayerData {
     pts: number;
     reb: number;
     ast: number;
+    stl: number;
+    blk: number;
+    fg3m: number;
+    fgm: number;
+    ftm: number;
+    turnover: number;
+    pra: number;
+    pr: number;
+    pa: number;
+    ra: number;
     min: number;
+    games_played: number;
+  };
+  recentAverages?: {
+    pts: number;
+    reb: number;
+    ast: number;
+    stl: number;
+    blk: number;
+    fg3m: number;
+    fgm: number;
+    ftm: number;
+    turnover: number;
+    pra: number;
+    pr: number;
+    pa: number;
+    ra: number;
+  };
+  propValues?: {
+    [key: string]: {
+      value: number;
+      hitRate: number;
+      trend: 'up' | 'down';
+    };
   };
 }
 
@@ -43,6 +76,12 @@ interface GameStat {
   pts: number;
   reb: number;
   ast: number;
+  stl: number;
+  blk: number;
+  fg3m: number;
+  fgm: number;
+  ftm: number;
+  turnover: number;
   min: string;
   game: {
     id: number;
@@ -78,7 +117,7 @@ export default function Dashboard() {
   const [propLines, setPropLines] = useState<PropLine[]>([]);
   const [players, setPlayers] = useState<PlayerData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPropType, setSelectedPropType] = useState<string>('all');
+  const [selectedPropType, setSelectedPropType] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<string>('value');
   const [viewMode, setViewMode] = useState<'feed' | 'player'>('feed');
   const [searchTerm, setSearchTerm] = useState('');
@@ -129,7 +168,7 @@ export default function Dashboard() {
       // Build query parameters
       const params = new URLSearchParams({
         active: 'true',
-        limit: '20',
+        limit: '50', // Increased limit for better filtering
         offset: '0'
       });
       
@@ -152,17 +191,57 @@ export default function Dashboard() {
           player.teamAbbreviation === teamFilter
         );
       }
+
+      if (filteredPlayers.length === 0) {
+        setPlayers([]);
+        return;
+      }
       
-      // Fetch stats for each player
+      // Get player IDs for batch season averages request
+      const playerIds = filteredPlayers.map((player: any) => player.id);
+      
+      // Fetch season averages in batch from BallDontLie API
+      let seasonAveragesMap = new Map();
+      try {
+        const seasonResponse = await fetch(`/api/season-averages?player_ids=${playerIds.join(',')}&season=2024`);
+        if (seasonResponse.ok) {
+          const seasonData = await seasonResponse.json();
+          seasonData.data.forEach((avg: any) => {
+            seasonAveragesMap.set(avg.player_id, {
+              pts: avg.pts || 0,
+              reb: avg.reb || 0,
+              ast: avg.ast || 0,
+              stl: avg.stl || 0,
+              blk: avg.blk || 0,
+              fg3m: avg.fg3m || 0,
+              fgm: avg.fgm || 0,
+              ftm: avg.ftm || 0,
+              turnover: avg.turnover || 0,
+              pra: avg.pra || 0,
+              pr: avg.pr || 0,
+              pa: avg.pa || 0,
+              ra: avg.ra || 0,
+              min: avg.min || 0,
+              games_played: avg.games_played || 0
+            });
+          });
+        }
+      } catch (seasonError) {
+        console.error('Error fetching season averages:', seasonError);
+      }
+      
+      // Fetch recent stats for each player
       const playersWithStats = await Promise.all(
         filteredPlayers.map(async (player: any) => {
           try {
-            // Get recent stats (last 5 games)
-            const recentStatsResponse = await fetch(`/api/stats?playerId=${player.id}&limit=5&type=recent`);
-            const seasonStatsResponse = await fetch(`/api/stats?playerId=${player.id}&type=season`);
+            // Get recent stats (last 10 games for better analysis)
+            const recentStatsResponse = await fetch(`/api/stats?playerId=${player.id}&limit=10&type=recent`);
             
             let recentStats = [];
-            let seasonAverages = { pts: 0, reb: 0, ast: 0, min: 0 };
+            const seasonAverages = seasonAveragesMap.get(player.id) || {
+              pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, fg3m: 0, fgm: 0, ftm: 0, 
+              turnover: 0, pra: 0, pr: 0, pa: 0, ra: 0, min: 0, games_played: 0
+            };
             
             if (recentStatsResponse.ok) {
               const recentData = await recentStatsResponse.json();
@@ -171,6 +250,12 @@ export default function Dashboard() {
                 pts: stat.pts || 0,
                 reb: stat.reb || 0,
                 ast: stat.ast || 0,
+                stl: stat.stl || 0,
+                blk: stat.blk || 0,
+                fg3m: stat.fg3m || 0,
+                fgm: stat.fgm || 0,
+                ftm: stat.ftm || 0,
+                turnover: stat.turnover || 0,
                 min: stat.min || '0',
                 game: {
                   id: stat.gameId || 0,
@@ -179,17 +264,8 @@ export default function Dashboard() {
               }));
             }
             
-            if (seasonStatsResponse.ok) {
-              const seasonData = await seasonStatsResponse.json();
-              if (seasonData.averages) {
-                seasonAverages = {
-                  pts: Math.round((seasonData.averages.pts || 0) * 10) / 10,
-                  reb: Math.round((seasonData.averages.reb || 0) * 10) / 10,
-                  ast: Math.round((seasonData.averages.ast || 0) * 10) / 10,
-                  min: Math.round((seasonData.averages.min || 0) * 10) / 10
-                };
-              }
-            }
+            // Calculate recent averages for comparison
+            const recentAverages = calculateRecentAverages(recentStats);
             
             return {
               id: player.id,
@@ -203,10 +279,17 @@ export default function Dashboard() {
                 city: player.teamCity || ''
               },
               recentStats,
-              seasonAverages
+              seasonAverages,
+              recentAverages,
+              // Calculate prop values for sorting
+              propValues: calculatePropValues(seasonAverages, recentAverages)
             };
           } catch (error) {
             console.error(`Error fetching stats for player ${player.id}:`, error);
+            const defaultAverages = {
+              pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, fg3m: 0, fgm: 0, ftm: 0,
+              turnover: 0, pra: 0, pr: 0, pa: 0, ra: 0, min: 0, games_played: 0
+            };
             return {
               id: player.id,
               first_name: player.firstName,
@@ -219,7 +302,9 @@ export default function Dashboard() {
                 city: player.teamCity || ''
               },
               recentStats: [],
-              seasonAverages: { pts: 0, reb: 0, ast: 0, min: 0 }
+              seasonAverages: defaultAverages,
+              recentAverages: defaultAverages,
+              propValues: calculatePropValues(defaultAverages, defaultAverages)
             };
           }
         })
@@ -235,7 +320,98 @@ export default function Dashboard() {
     }
   };
 
-  // Removed calculateSeasonAverages function - now using API for season averages
+  // Calculate recent averages from recent stats
+  const calculateRecentAverages = (recentStats: any[]) => {
+    if (recentStats.length === 0) {
+      return { pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, fg3m: 0, fgm: 0, ftm: 0, turnover: 0, pra: 0, pr: 0, pa: 0, ra: 0 };
+    }
+    
+    const totals = recentStats.reduce((acc, stat) => {
+      acc.pts += stat.pts;
+      acc.reb += stat.reb;
+      acc.ast += stat.ast;
+      acc.stl += stat.stl || 0;
+      acc.blk += stat.blk || 0;
+      acc.fg3m += stat.fg3m || 0;
+      acc.fgm += stat.fgm || 0;
+      acc.ftm += stat.ftm || 0;
+      acc.turnover += stat.turnover || 0;
+      return acc;
+    }, { pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, fg3m: 0, fgm: 0, ftm: 0, turnover: 0 });
+    
+    const games = recentStats.length;
+    return {
+      pts: Math.round((totals.pts / games) * 10) / 10,
+      reb: Math.round((totals.reb / games) * 10) / 10,
+      ast: Math.round((totals.ast / games) * 10) / 10,
+      stl: Math.round((totals.stl / games) * 10) / 10,
+      blk: Math.round((totals.blk / games) * 10) / 10,
+      fg3m: Math.round((totals.fg3m / games) * 10) / 10,
+      fgm: Math.round((totals.fgm / games) * 10) / 10,
+      ftm: Math.round((totals.ftm / games) * 10) / 10,
+      turnover: Math.round((totals.turnover / games) * 10) / 10,
+      pra: Math.round(((totals.pts + totals.reb + totals.ast) / games) * 10) / 10,
+      pr: Math.round(((totals.pts + totals.reb) / games) * 10) / 10,
+      pa: Math.round(((totals.pts + totals.ast) / games) * 10) / 10,
+      ra: Math.round(((totals.reb + totals.ast) / games) * 10) / 10
+    };
+  };
+
+  // Calculate prop values for sorting and filtering
+  const calculatePropValues = (seasonAverages: any, recentAverages: any) => {
+    return {
+      pts: {
+        value: Math.abs(recentAverages.pts - seasonAverages.pts),
+        hitRate: recentAverages.pts > seasonAverages.pts ? 70 : 30,
+        trend: recentAverages.pts > seasonAverages.pts ? 'up' : 'down'
+      },
+      reb: {
+        value: Math.abs(recentAverages.reb - seasonAverages.reb),
+        hitRate: recentAverages.reb > seasonAverages.reb ? 70 : 30,
+        trend: recentAverages.reb > seasonAverages.reb ? 'up' : 'down'
+      },
+      ast: {
+        value: Math.abs(recentAverages.ast - seasonAverages.ast),
+        hitRate: recentAverages.ast > seasonAverages.ast ? 70 : 30,
+        trend: recentAverages.ast > seasonAverages.ast ? 'up' : 'down'
+      },
+      stl: {
+        value: Math.abs(recentAverages.stl - seasonAverages.stl),
+        hitRate: recentAverages.stl > seasonAverages.stl ? 70 : 30,
+        trend: recentAverages.stl > seasonAverages.stl ? 'up' : 'down'
+      },
+      blk: {
+        value: Math.abs(recentAverages.blk - seasonAverages.blk),
+        hitRate: recentAverages.blk > seasonAverages.blk ? 70 : 30,
+        trend: recentAverages.blk > seasonAverages.blk ? 'up' : 'down'
+      },
+      fg3m: {
+        value: Math.abs(recentAverages.fg3m - seasonAverages.fg3m),
+        hitRate: recentAverages.fg3m > seasonAverages.fg3m ? 70 : 30,
+        trend: recentAverages.fg3m > seasonAverages.fg3m ? 'up' : 'down'
+      },
+      pra: {
+        value: Math.abs(recentAverages.pra - seasonAverages.pra),
+        hitRate: recentAverages.pra > seasonAverages.pra ? 70 : 30,
+        trend: recentAverages.pra > seasonAverages.pra ? 'up' : 'down'
+      },
+      pr: {
+        value: Math.abs(recentAverages.pr - seasonAverages.pr),
+        hitRate: recentAverages.pr > seasonAverages.pr ? 70 : 30,
+        trend: recentAverages.pr > seasonAverages.pr ? 'up' : 'down'
+      },
+      pa: {
+        value: Math.abs(recentAverages.pa - seasonAverages.pa),
+        hitRate: recentAverages.pa > seasonAverages.pa ? 70 : 30,
+        trend: recentAverages.pa > seasonAverages.pa ? 'up' : 'down'
+      },
+      ra: {
+        value: Math.abs(recentAverages.ra - seasonAverages.ra),
+        hitRate: recentAverages.ra > seasonAverages.ra ? 70 : 30,
+        trend: recentAverages.ra > seasonAverages.ra ? 'up' : 'down'
+      }
+    };
+  };
 
   // Get stat comparison color
   const getStatColor = (gameStat: number, seasonAvg: number) => {
@@ -476,11 +652,70 @@ export default function Dashboard() {
     return () => clearTimeout(debounceTimer);
   }, [searchTerm, selectedTeam]);
 
-  const propTypes = ['all', 'Points', 'Rebounds', 'Assists', 'Points + Rebounds', 'Points + Assists', 'PRA', '3PM', 'Blocks', 'Steals'];
+  const propTypes = [
+    { value: 'pts', label: 'Points' },
+    { value: 'reb', label: 'Rebounds' },
+    { value: 'ast', label: 'Assists' },
+    { value: 'stl', label: 'Steals' },
+    { value: 'blk', label: 'Blocks' },
+    { value: 'fg3m', label: '3PM' },
+    { value: 'pra', label: 'PRA' },
+    { value: 'pr', label: 'P+R' },
+    { value: 'pa', label: 'P+A' },
+    { value: 'ra', label: 'R+A' }
+  ];
+
+  // Filter and sort players based on current criteria
+  const filteredAndSortedPlayers = useMemo(() => {
+    let filtered = players;
+    
+    // Filter by selected prop types - only show players with non-zero values for selected stats
+    if (selectedPropType.length > 0) {
+      filtered = filtered.filter(player => {
+        return selectedPropType.some(propType => {
+          const seasonValue = player.seasonAverages[propType] || 0;
+          const recentValue = player.recentAverages?.[propType] || 0;
+          return seasonValue > 0 || recentValue > 0;
+        });
+      });
+    }
+    
+    // Sort based on sortBy criteria
+    if (sortBy === 'value') {
+      // Sort by difference between recent and season averages for the first selected prop type
+      const primaryProp = selectedPropType[0] || 'pts';
+      filtered = [...filtered].sort((a, b) => {
+        const aValue = a.propValues?.[primaryProp]?.value || 0;
+        const bValue = b.propValues?.[primaryProp]?.value || 0;
+        return bValue - aValue;
+      });
+    } else if (sortBy === 'hitRate') {
+      // Sort by hit rate for the first selected prop type
+      const primaryProp = selectedPropType[0] || 'pts';
+      filtered = [...filtered].sort((a, b) => {
+        const aHitRate = a.propValues?.[primaryProp]?.hitRate || 0;
+        const bHitRate = b.propValues?.[primaryProp]?.hitRate || 0;
+        return bHitRate - aHitRate;
+      });
+    } else if (sortBy === 'line') {
+      // Sort by season average for the first selected prop type (as proxy for line)
+      const primaryProp = selectedPropType[0] || 'pts';
+      filtered = [...filtered].sort((a, b) => {
+        const aLine = a.seasonAverages[primaryProp] || 0;
+        const bLine = b.seasonAverages[primaryProp] || 0;
+        return bLine - aLine;
+      });
+    }
+    
+    return filtered;
+  }, [players, sortBy, selectedPropType]);
   
-  const filteredProps = propLines.filter(prop => 
-    selectedPropType === 'all' || prop.propType === selectedPropType
-  ).sort((a, b) => {
+  const filteredProps = propLines.filter(prop => {
+    if (selectedPropType.length === 0) return true;
+    return selectedPropType.some(propType => 
+      prop.propType.toLowerCase().includes(propType.toLowerCase())
+    );
+  }).sort((a, b) => {
     switch (sortBy) {
       case 'value': return b.value - a.value;
       case 'hitRate': return b.hitRate - a.hitRate;
@@ -629,17 +864,33 @@ export default function Dashboard() {
               {/* Quick Prop Type Filters */}
               <div className="mb-4">
                 <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setSelectedPropType([])}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                      selectedPropType.length === 0
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    All Props
+                  </button>
                   {propTypes.map(type => (
                     <button
-                      key={type}
-                      onClick={() => setSelectedPropType(type)}
+                      key={type.value}
+                      onClick={() => {
+                        setSelectedPropType(prev => 
+                          prev.includes(type.value)
+                            ? prev.filter(p => p !== type.value)
+                            : [...prev, type.value]
+                        );
+                      }}
                       className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                        selectedPropType === type
+                        selectedPropType.includes(type.value)
                           ? 'bg-blue-600 text-white'
                           : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                       }`}
                     >
-                      {type === 'all' ? 'All Props' : type}
+                      {type.label}
                     </button>
                   ))}
                 </div>
@@ -674,7 +925,12 @@ export default function Dashboard() {
                 </div>
                 
                 <div className="flex items-center space-x-3 text-sm text-gray-600 dark:text-gray-400">
-                  <span>Showing {players.length} players</span>
+                  <span>Showing {filteredAndSortedPlayers.length} of {players.length} players</span>
+                  {selectedPropType.length > 0 && (
+                    <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
+                      Filtered by: {selectedPropType.map(p => propTypes.find(pt => pt.value === p)?.label).join(', ')}
+                    </span>
+                  )}
                   <div className="flex items-center space-x-1">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                     <span className="text-xs">Live data</span>
@@ -724,13 +980,14 @@ export default function Dashboard() {
 
             {/* NBA Players Feed */}
             {loading ? (
-              <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span className="ml-3 text-gray-600 dark:text-gray-300">Loading players...</span>
-              </div>
+               <div className="flex flex-col items-center justify-center py-12">
+                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                 <span className="text-gray-600 dark:text-gray-400 text-lg font-medium">Loading NBA players...</span>
+                 <span className="text-gray-500 dark:text-gray-500 text-sm mt-2">Fetching season averages and recent stats</span>
+               </div>
             ) : (
               <div className="space-y-4">
-                {players.map((player, index) => (
+                {filteredAndSortedPlayers.map((player, index) => (
                   <div
                     key={player.id}
                     className="bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600"
@@ -763,84 +1020,119 @@ export default function Dashboard() {
                         <div className="text-right">
                           <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Season Averages</div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">
-                            {player.seasonAverages.pts} PTS • {player.seasonAverages.reb} REB • {player.seasonAverages.ast} AST
+                            {player.seasonAverages.pts || 0} PTS • {player.seasonAverages.reb || 0} REB • {player.seasonAverages.ast || 0} AST
                           </div>
                         </div>
                       </div>
 
-                      {/* Stats Grid */}
-                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                        {/* Points */}
-                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-semibold text-gray-900 dark:text-white text-sm">Points</h4>
-                            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                              Avg: {player.seasonAverages.pts}
-                            </span>
+                      {/* Dynamic Stats Grid based on selected prop types */}
+                      <div className="space-y-4">
+                        {selectedPropType.length > 0 ? (
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            {selectedPropType.slice(0, 8).map(propType => {
+                              const propLabel = propTypes.find(p => p.value === propType)?.label || propType;
+                              const seasonValue = player.seasonAverages[propType] || 0;
+                              const recentValue = player.recentAverages?.[propType] || 0;
+                              const isUp = recentValue > seasonValue;
+                              const difference = Math.abs(recentValue - seasonValue);
+                              
+                              return (
+                                <div key={propType} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                                  <div className="text-center">
+                                    <h4 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">{propLabel}</h4>
+                                    <div className="text-lg font-bold text-gray-900 dark:text-white">
+                                      {recentValue > 0 ? recentValue : 'N/A'}
+                                    </div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                      Season: {seasonValue > 0 ? seasonValue : 'N/A'}
+                                    </div>
+                                    {recentValue > 0 && seasonValue > 0 && (
+                                      <div className={`text-xs font-medium mt-1 ${
+                                        isUp ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                                      }`}>
+                                        {isUp ? '↗' : '↘'} {difference.toFixed(1)}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
-                          <div className="space-y-1">
-                            {player.recentStats.slice(0, 5).map((stat, statIndex) => (
-                              <div key={stat.id || statIndex} className="flex items-center justify-between">
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  Game {statIndex + 1}
-                                </span>
-                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                  getStatColor(stat.pts, player.seasonAverages.pts)
-                                }`}>
-                                  {stat.pts}
+                        ) : (
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                            {/* Points */}
+                            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-semibold text-gray-900 dark:text-white text-sm">Points</h4>
+                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                  Avg: {player.seasonAverages.pts || 0}
                                 </span>
                               </div>
-                            ))}
-                          </div>
-                        </div>
+                              <div className="space-y-1">
+                                {player.recentStats.slice(0, 5).map((stat, statIndex) => (
+                                  <div key={stat.id || statIndex} className="flex items-center justify-between">
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                      Game {statIndex + 1}
+                                    </span>
+                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                      getStatColor(stat.pts, player.seasonAverages.pts)
+                                    }`}>
+                                      {stat.pts}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
 
-                        {/* Rebounds */}
-                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-semibold text-gray-900 dark:text-white text-sm">Rebounds</h4>
-                            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                              Avg: {player.seasonAverages.reb}
-                            </span>
-                          </div>
-                          <div className="space-y-1">
-                            {player.recentStats.slice(0, 5).map((stat, statIndex) => (
-                              <div key={stat.id || statIndex} className="flex items-center justify-between">
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  Game {statIndex + 1}
-                                </span>
-                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                  getStatColor(stat.reb, player.seasonAverages.reb)
-                                }`}>
-                                  {stat.reb}
+                            {/* Rebounds */}
+                            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-semibold text-gray-900 dark:text-white text-sm">Rebounds</h4>
+                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                  Avg: {player.seasonAverages.reb || 0}
                                 </span>
                               </div>
-                            ))}
-                          </div>
-                        </div>
+                              <div className="space-y-1">
+                                {player.recentStats.slice(0, 5).map((stat, statIndex) => (
+                                  <div key={stat.id || statIndex} className="flex items-center justify-between">
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                      Game {statIndex + 1}
+                                    </span>
+                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                      getStatColor(stat.reb, player.seasonAverages.reb)
+                                    }`}>
+                                      {stat.reb}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
 
-                        {/* Assists */}
-                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-semibold text-gray-900 dark:text-white text-sm">Assists</h4>
-                            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                              Avg: {player.seasonAverages.ast}
-                            </span>
-                          </div>
-                          <div className="space-y-1">
-                            {player.recentStats.slice(0, 5).map((stat, statIndex) => (
-                              <div key={stat.id || statIndex} className="flex items-center justify-between">
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  Game {statIndex + 1}
-                                </span>
-                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                  getStatColor(stat.ast, player.seasonAverages.ast)
-                                }`}>
-                                  {stat.ast}
+                            {/* Assists */}
+                            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-semibold text-gray-900 dark:text-white text-sm">Assists</h4>
+                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                  Avg: {player.seasonAverages.ast || 0}
                                 </span>
                               </div>
-                            ))}
+                              <div className="space-y-1">
+                                {player.recentStats.slice(0, 5).map((stat, statIndex) => (
+                                  <div key={stat.id || statIndex} className="flex items-center justify-between">
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                      Game {statIndex + 1}
+                                    </span>
+                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                      getStatColor(stat.ast, player.seasonAverages.ast)
+                                    }`}>
+                                      {stat.ast}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -849,7 +1141,7 @@ export default function Dashboard() {
                 {/* Pagination */}
                 <div className="flex items-center justify-between bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                   <div className="text-sm text-gray-600 dark:text-gray-400">
-                    Showing {players.length} players • Page {currentPage}
+                    Showing {filteredAndSortedPlayers.length} of {players.length} players • Page {currentPage}
                   </div>
                   <div className="flex items-center space-x-2">
                     <button
