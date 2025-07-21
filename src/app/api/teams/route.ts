@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { teams } from '@/lib/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, and } from 'drizzle-orm';
 import { cacheService, CacheService, CACHE_TTL } from '@/lib/services/cache-service';
 
 export async function GET(request: NextRequest) {
@@ -18,6 +18,33 @@ export async function GET(request: NextRequest) {
     const result = await cacheService.getOrSet(
       cacheKey,
       async () => {
+        // Build where conditions
+        const conditions = [];
+
+        // Add search functionality
+        if (search && search.trim()) {
+          const searchTerm = `%${search.trim().toLowerCase()}%`;
+          conditions.push(
+            sql`(
+              LOWER(${teams.full_name}) LIKE ${searchTerm} OR 
+              LOWER(${teams.name}) LIKE ${searchTerm} OR 
+              LOWER(${teams.abbreviation}) LIKE ${searchTerm} OR
+              LOWER(${teams.city}) LIKE ${searchTerm}
+            )`
+          );
+        }
+
+        // Filter by conference
+        if (conference && conference.trim()) {
+          conditions.push(eq(teams.conference, conference.trim()));
+        }
+
+        // Filter by division
+        if (division && division.trim()) {
+          conditions.push(eq(teams.division, division.trim()));
+        }
+
+        // Build the query
         let query = db
           .select({
             id: teams.id,
@@ -28,46 +55,17 @@ export async function GET(request: NextRequest) {
             fullName: teams.full_name,
             name: teams.name
           })
-          .from(teams)
-          .limit(limit)
-          .offset(offset);
+          .from(teams);
 
-    // Build where conditions
-    const conditions = [];
+        // Apply conditions if any
+         if (conditions.length > 0) {
+           query = (query as any).where(and(...conditions));
+         }
 
-    // Add search functionality
-    if (search && search.trim()) {
-      const searchTerm = `%${search.trim().toLowerCase()}%`;
-      conditions.push(
-        sql`(
-          LOWER(${teams.full_name}) LIKE ${searchTerm} OR 
-          LOWER(${teams.name}) LIKE ${searchTerm} OR 
-          LOWER(${teams.abbreviation}) LIKE ${searchTerm} OR
-          LOWER(${teams.city}) LIKE ${searchTerm}
-        )`
-      );
-    }
-
-    // Filter by conference
-    if (conference && conference.trim()) {
-      conditions.push(eq(teams.conference, conference.trim()));
-    }
-
-    // Filter by division
-    if (division && division.trim()) {
-      conditions.push(eq(teams.division, division.trim()));
-    }
-
-    // Apply conditions if any
-    if (conditions.length > 0) {
-      query = query.where(sql`${conditions.reduce((acc, condition, index) => {
-        if (index === 0) return condition;
-        return sql`${acc} AND ${condition}`;
-      })}`);
-    }
-
-    // Order by conference, division, city
-    query = query.orderBy(teams.conference, teams.division, teams.city);
+        // Order by conference, division, city
+          query = (query as any).orderBy(teams.conference, teams.division, teams.city)
+            .limit(limit)
+            .offset(offset);
 
         const queryResult = await query;
 
@@ -77,10 +75,7 @@ export async function GET(request: NextRequest) {
           .from(teams);
 
         if (conditions.length > 0) {
-          countQuery = countQuery.where(sql`${conditions.reduce((acc, condition, index) => {
-            if (index === 0) return condition;
-            return sql`${acc} AND ${condition}`;
-          })}`);
+          countQuery = (countQuery as any).where(and(...conditions));
         }
 
         const [{ count }] = await countQuery;

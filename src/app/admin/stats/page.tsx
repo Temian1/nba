@@ -88,9 +88,9 @@ export default function AdminStats() {
         setStats(data.data || []);
         
         // Extract unique values for filters
-        const uniqueTeams = [...new Set(data.data.map((s: PlayerStat) => s.team?.full_name).filter(Boolean))];
-        const uniquePositions = [...new Set(data.data.map((s: PlayerStat) => s.player?.position).filter(Boolean))];
-        const uniqueSeasons = [...new Set(data.data.map((s: PlayerStat) => s.game?.season).filter(Boolean))];
+        const uniqueTeams = [...new Set(data.data.map((s: PlayerStat) => s.team?.full_name).filter(Boolean))] as string[];
+        const uniquePositions = [...new Set(data.data.map((s: PlayerStat) => s.player?.position).filter(Boolean))] as string[];
+        const uniqueSeasons = [...new Set(data.data.map((s: PlayerStat) => s.game?.season).filter(Boolean))] as number[];
         
         setTeams(uniqueTeams.sort());
         setPositions(uniquePositions.sort());

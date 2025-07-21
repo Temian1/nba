@@ -49,8 +49,8 @@ export default function AdminPlayers() {
         setPlayers(data.data || []);
         
         // Extract unique teams and positions for filters
-        const uniqueTeams = [...new Set(data.data.map((p: Player) => p.team_name).filter(Boolean))];
-        const uniquePositions = [...new Set(data.data.map((p: Player) => p.position).filter(Boolean))];
+        const uniqueTeams = [...new Set(data.data.map((p: Player) => p.team_name).filter(Boolean))] as string[];
+        const uniquePositions = [...new Set(data.data.map((p: Player) => p.position).filter(Boolean))] as string[];
         
         setTeams(uniqueTeams.sort());
         setPositions(uniquePositions.sort());

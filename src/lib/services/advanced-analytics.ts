@@ -6,7 +6,7 @@
 import { db } from '../db';
 import { playerStats, games, teams, players } from '../db/schema';
 import { eq, and, gte, lte, desc, sql, avg, count, inArray } from 'drizzle-orm';
-import { subDays, startOfSeason, endOfSeason, format } from 'date-fns';
+import { subDays, format } from 'date-fns';
 import { cacheService, CacheService, CACHE_TTL } from './cache-service';
 
 export interface OpponentTrend {

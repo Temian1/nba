@@ -673,8 +673,8 @@ export default function Dashboard() {
     if (selectedPropType.length > 0) {
       filtered = filtered.filter(player => {
         return selectedPropType.some(propType => {
-          const seasonValue = player.seasonAverages[propType] || 0;
-          const recentValue = player.recentAverages?.[propType] || 0;
+          const seasonValue = player.seasonAverages[propType as keyof typeof player.seasonAverages] || 0;
+          const recentValue = player.recentAverages?.[propType as keyof typeof player.recentAverages] || 0;
           return seasonValue > 0 || recentValue > 0;
         });
       });
@@ -701,8 +701,8 @@ export default function Dashboard() {
       // Sort by season average for the first selected prop type (as proxy for line)
       const primaryProp = selectedPropType[0] || 'pts';
       filtered = [...filtered].sort((a, b) => {
-        const aLine = a.seasonAverages[primaryProp] || 0;
-        const bLine = b.seasonAverages[primaryProp] || 0;
+        const aLine = a.seasonAverages[primaryProp as keyof typeof a.seasonAverages] || 0;
+        const bLine = b.seasonAverages[primaryProp as keyof typeof b.seasonAverages] || 0;
         return bLine - aLine;
       });
     }
@@ -992,7 +992,7 @@ export default function Dashboard() {
                     key={player.id}
                     className="bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600"
                     onClick={() => handlePlayerSelect({
-                      id: player.id.toString(),
+                      id: player.id,
                       firstName: player.first_name,
                       lastName: player.last_name,
                       position: player.position,
@@ -1031,8 +1031,8 @@ export default function Dashboard() {
                           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                             {selectedPropType.slice(0, 8).map(propType => {
                               const propLabel = propTypes.find(p => p.value === propType)?.label || propType;
-                              const seasonValue = player.seasonAverages[propType] || 0;
-                              const recentValue = player.recentAverages?.[propType] || 0;
+                              const seasonValue = player.seasonAverages[propType as keyof typeof player.seasonAverages] || 0;
+                              const recentValue = player.recentAverages?.[propType as keyof typeof player.recentAverages] || 0;
                               const isUp = recentValue > seasonValue;
                               const difference = Math.abs(recentValue - seasonValue);
                               

@@ -17,7 +17,7 @@ export async function GET() {
       WHERE date >= CURRENT_DATE - INTERVAL '7 days'
     `);
     
-    const recentGamesCount = Number(dataCheck[0]?.count || 0);
+    const recentGamesCount = Number((dataCheck as any)[0]?.count || 0);
     
     const health = {
       status: 'healthy',

@@ -49,8 +49,8 @@ export async function POST(request: NextRequest) {
         last_name: 'James',
         position: 'F',
         height: '6-9',
-        weight: 250,
-        jersey_number: 23,
+        weight: '250',
+        jersey_number: '23',
         team_id: 1,
         is_active: true
       },
@@ -60,8 +60,8 @@ export async function POST(request: NextRequest) {
         last_name: 'Curry',
         position: 'G',
         height: '6-2',
-        weight: 185,
-        jersey_number: 30,
+        weight: '185',
+        jersey_number: '30',
         team_id: 2,
         is_active: true
       },
@@ -71,8 +71,8 @@ export async function POST(request: NextRequest) {
         last_name: 'Tatum',
         position: 'F',
         height: '6-8',
-        weight: 210,
-        jersey_number: 0,
+        weight: '210',
+        jersey_number: '0',
         team_id: 3,
         is_active: true
       }

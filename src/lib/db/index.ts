@@ -14,11 +14,6 @@ const pool = new Pool({
   idleTimeoutMillis: 30000,
   max: 20, // Maximum number of clients in the pool
   min: 2,  // Minimum number of clients in the pool
-  acquireTimeoutMillis: 60000,
-  createTimeoutMillis: 30000,
-  destroyTimeoutMillis: 5000,
-  reapIntervalMillis: 1000,
-  createRetryIntervalMillis: 200,
 });
 
 // Handle pool errors

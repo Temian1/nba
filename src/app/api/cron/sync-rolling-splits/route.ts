@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { players, playerStats, rollingSplits, games } from '@/lib/db/schema';
+import { players, playerStats, rollingSplits, games, type NewRollingSplit } from '@/lib/db/schema';
 import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
 import { subDays } from 'date-fns';
 
@@ -115,53 +115,44 @@ class RollingSplitsService {
 
       const averages = this.calculateAverages(periodStats);
       
-      await db
-        .insert(rollingSplits)
-        .values({
-          player_id: playerId,
-          period_days: period,
-          games_played: periodStats.length,
-          avg_pts: averages.pts,
-          avg_reb: averages.reb,
-          avg_ast: averages.ast,
-          avg_stl: averages.stl,
-          avg_blk: averages.blk,
-          avg_turnover: averages.turnover,
-          avg_fgm: averages.fgm,
-          avg_fga: averages.fga,
-          avg_fg_pct: averages.fg_pct,
-          avg_fg3m: averages.fg3m,
-          avg_fg3a: averages.fg3a,
-          avg_fg3_pct: averages.fg3_pct,
-          avg_ftm: averages.ftm,
-          avg_fta: averages.fta,
-          avg_ft_pct: averages.ft_pct,
-          avg_min: averages.min,
-          last_updated: new Date()
-        })
-        .onConflictDoUpdate({
-          target: [rollingSplits.player_id, rollingSplits.period_days],
-          set: {
-            games_played: periodStats.length,
-            avg_pts: averages.pts,
-            avg_reb: averages.reb,
-            avg_ast: averages.ast,
-            avg_stl: averages.stl,
-            avg_blk: averages.blk,
-            avg_turnover: averages.turnover,
-            avg_fgm: averages.fgm,
-            avg_fga: averages.fga,
-            avg_fg_pct: averages.fg_pct,
-            avg_fg3m: averages.fg3m,
-            avg_fg3a: averages.fg3a,
-            avg_fg3_pct: averages.fg3_pct,
-            avg_ftm: averages.ftm,
-            avg_fta: averages.fta,
-            avg_ft_pct: averages.ft_pct,
-            avg_min: averages.min,
-            last_updated: new Date()
-          }
-        });
+      // Insert rolling splits for each stat type using the existing schema
+      const statTypes = [
+        { prop: 'pts', value: averages.pts },
+        { prop: 'reb', value: averages.reb },
+        { prop: 'ast', value: averages.ast },
+        { prop: 'stl', value: averages.stl },
+        { prop: 'blk', value: averages.blk },
+        { prop: 'turnover', value: averages.turnover },
+        { prop: 'fgm', value: averages.fgm },
+        { prop: 'fga', value: averages.fga },
+        { prop: 'fg3m', value: averages.fg3m },
+        { prop: 'fg3a', value: averages.fg3a },
+        { prop: 'ftm', value: averages.ftm },
+        { prop: 'fta', value: averages.fta },
+        { prop: 'min', value: averages.min }
+      ];
+
+      for (const stat of statTypes) {
+        if (stat.value !== undefined && stat.value !== null) {
+          const insertData: NewRollingSplit = {
+            player_id: playerId,
+            prop_type: stat.prop,
+            games_count: period,
+            average: stat.value.toString()
+          };
+          
+          await db
+            .insert(rollingSplits)
+            .values(insertData)
+            .onConflictDoUpdate({
+              target: [rollingSplits.player_id, rollingSplits.prop_type, rollingSplits.games_count],
+              set: {
+                average: stat.value.toString(),
+                last_updated: new Date()
+              }
+            });
+        }
+      }
     }
   }
 

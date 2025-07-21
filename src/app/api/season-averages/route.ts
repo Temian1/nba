@@ -43,13 +43,36 @@ export async function GET(request: NextRequest) {
       async () => {
         try {
           // Fetch season averages from BallDontLie API
-          const response = await api.nba.getSeasonAverages({
-            season: parseInt(season),
-            player_ids: playerIds
-          });
+          // Handle multiple player IDs by making separate requests if needed
+          let allSeasonAverages: any[] = [];
+          
+          // If only one player ID, make a single request
+          if (playerIds.length === 1) {
+            const response = await api.nba.getSeasonAverages({
+              season: parseInt(season),
+              player_id: playerIds[0]
+            });
+            allSeasonAverages = response.data;
+          } else {
+            // For multiple player IDs, make individual requests
+            for (const playerId of playerIds) {
+              try {
+                const response = await api.nba.getSeasonAverages({
+                  season: parseInt(season),
+                  player_id: playerId
+                });
+                allSeasonAverages.push(...response.data);
+                // Add small delay to respect rate limits
+                await new Promise(resolve => setTimeout(resolve, 100));
+              } catch (error) {
+                console.warn(`Failed to fetch season averages for player ${playerId}:`, error);
+                // Continue with other players
+              }
+            }
+          }
 
           // Transform the response to match our expected format
-          const seasonAverages = response.data.map((avg: any) => ({
+          const seasonAverages = allSeasonAverages.map((avg: any) => ({
             player_id: avg.player_id,
             season: avg.season,
             games_played: avg.games_played,
@@ -153,12 +176,35 @@ export async function POST(request: NextRequest) {
       cacheKey,
       async () => {
         try {
-          const response = await api.nba.getSeasonAverages({
-            season: parseInt(season),
-            player_ids: player_ids
-          });
+          // Handle multiple player IDs by making separate requests if needed
+          let allSeasonAverages: any[] = [];
+          
+          // If only one player ID, make a single request
+          if (player_ids.length === 1) {
+            const response = await api.nba.getSeasonAverages({
+              season: parseInt(season),
+              player_id: player_ids[0]
+            });
+            allSeasonAverages = response.data;
+          } else {
+            // For multiple player IDs, make individual requests
+            for (const playerId of player_ids) {
+              try {
+                const response = await api.nba.getSeasonAverages({
+                  season: parseInt(season),
+                  player_id: playerId
+                });
+                allSeasonAverages.push(...response.data);
+                // Add small delay to respect rate limits
+                await new Promise(resolve => setTimeout(resolve, 100));
+              } catch (error) {
+                console.warn(`Failed to fetch season averages for player ${playerId}:`, error);
+                // Continue with other players
+              }
+            }
+          }
 
-          let seasonAverages = response.data.map((avg: any) => ({
+          let seasonAverages = allSeasonAverages.map((avg: any) => ({
             player_id: avg.player_id,
             season: avg.season,
             games_played: avg.games_played,
@@ -200,7 +246,7 @@ export async function POST(request: NextRequest) {
 
           return {
             season: parseInt(season),
-            season_type: seasonType,
+            season_type: season_type,
             filters,
             data: seasonAverages,
             total: seasonAverages.length

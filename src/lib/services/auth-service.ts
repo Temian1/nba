@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from '../db';
 import { users, userSessions } from '../db/schema';
-import { eq, and, gt } from 'drizzle-orm';
+import { eq, and, gt, lt } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -198,7 +198,7 @@ export class AuthService {
   static async cleanupExpiredSessions(): Promise<void> {
     await db
       .delete(userSessions)
-      .where(gt(new Date(), userSessions.expires_at));
+      .where(lt(userSessions.expires_at, new Date()));
   }
 
   /**

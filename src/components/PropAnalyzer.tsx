@@ -341,7 +341,7 @@ export default function PropAnalyzer({ playerId, playerName, filters }: PropAnal
           </div>
 
             {/* Game-by-Game Table */}
-            <StatsTable gameOutcomes={gameOutcomes} propLine={propLine} />
+            <StatsTable gameOutcomes={gameOutcomes} propType={selectedPropType} propLine={propLine} />
           </TabsContent>
 
           <TabsContent value="advanced" className="space-y-6">

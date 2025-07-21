@@ -128,7 +128,7 @@ export class NBAService {
   async syncTeams(): Promise<void> {
     console.log('🏀 Syncing teams...');
     try {
-      const response = await this.handleApiCall(() => api.nba.getTeams({ per_page: 30 }));
+      const response = await this.handleApiCall(() => api.nba.getTeams({}));
       
       for (const team of response.data) {
         await db.insert(teams).values({
@@ -169,9 +169,9 @@ export class NBAService {
         const response = await this.handleApiCall(() => 
           api.nba.getPlayers({ 
             per_page: 100,
-            cursor: cursor
+            cursor: cursor ? parseInt(cursor) : undefined
           })
-        );
+        ) as any;
 
         for (const player of response.data) {
           await db.insert(players).values({
@@ -211,7 +211,7 @@ export class NBAService {
         }
 
         totalPlayers += response.data.length;
-        cursor = response.meta.next_cursor;
+        cursor = response.meta.next_cursor as string | undefined;
         console.log(`📊 Processed ${totalPlayers} players...`);
       } while (cursor);
 
@@ -235,9 +235,9 @@ export class NBAService {
           api.nba.getGames({
             dates: [dateStr],
             per_page: 25,
-            cursor: cursor
+            cursor: cursor ? parseInt(cursor) : undefined
           })
-        );
+        ) as any;
 
         for (const game of response.data) {
           await db.insert(games).values({
@@ -266,7 +266,7 @@ export class NBAService {
         }
 
         totalGames += response.data.length;
-        cursor = response.meta.next_cursor;
+        cursor = response.meta.next_cursor as string | undefined;
       } while (cursor);
 
       console.log(`✅ Synced ${totalGames} games for ${dateStr}`);
@@ -289,9 +289,9 @@ export class NBAService {
           api.nba.getStats({
             dates: [dateStr],
             per_page: 100,
-            cursor: cursor
+            cursor: cursor ? parseInt(cursor) : undefined
           })
-        );
+        ) as any;
 
         for (const stat of response.data) {
           await db.insert(playerStats).values({
@@ -318,11 +318,11 @@ export class NBAService {
             pf: stat.pf,
             pts: stat.pts,
             plus_minus: stat.plus_minus
-          }).onConflictDoNothing();
+          } as any).onConflictDoNothing();
         }
 
         totalStats += response.data.length;
-        cursor = response.meta.next_cursor;
+        cursor = response.meta.next_cursor as string | undefined;
         console.log(`📈 Processed ${totalStats} player stats...`);
       } while (cursor);
 
@@ -388,7 +388,18 @@ export class NBAService {
     endDate?: Date;
   }): Promise<any[]> {
     try {
-      let query = db
+      // Build conditions array
+      const conditions = [eq(playerStats.player_id, playerId)];
+      
+      if (filters?.startDate) {
+        conditions.push(gte(games.date, filters.startDate));
+      }
+
+      if (filters?.endDate) {
+        conditions.push(lte(games.date, filters.endDate));
+      }
+
+      const query = db
         .select({
           id: playerStats.id,
           game_date: games.date,
@@ -411,22 +422,7 @@ export class NBAService {
         .from(playerStats)
         .innerJoin(games, eq(playerStats.game_id, games.id))
         .innerJoin(teams, eq(games.visitor_team_id, teams.id))
-        .where(eq(playerStats.player_id, playerId));
-
-      // Apply filters
-      if (filters?.startDate) {
-        query = query.where(and(
-          eq(playerStats.player_id, playerId),
-          gte(games.date, filters.startDate)
-        ));
-      }
-
-      if (filters?.endDate) {
-        query = query.where(and(
-          eq(playerStats.player_id, playerId),
-          lte(games.date, filters.endDate)
-        ));
-      }
+        .where(and(...conditions));
 
       const result = await query
         .orderBy(desc(games.date))

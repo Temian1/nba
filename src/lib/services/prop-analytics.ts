@@ -173,7 +173,7 @@ export class PropAnalyticsService {
         .orderBy(desc(games.date));
 
       if (filters?.lastNGames) {
-        query = query.limit(filters.lastNGames);
+        query = (query as any).limit(filters.lastNGames);
       }
 
       let results = await query;
@@ -188,7 +188,7 @@ export class PropAnalyticsService {
 
       if (filters?.minMinutes) {
         results = results.filter(stat => {
-          const minutes = this.parseMinutes(stat.min);
+          const minutes = this.parseMinutes(stat.min || undefined);
           return minutes >= (filters.minMinutes || 0);
         });
       }
@@ -394,7 +394,7 @@ export class PropAnalyticsService {
             hit_rate_15: parseFloat(hitRate15.toFixed(2)),
             hit_rate_25: parseFloat(hitRate25.toFixed(2)),
             hit_rate_35: parseFloat(hitRate35.toFixed(2))
-          }).onConflictDoUpdate({
+          } as any).onConflictDoUpdate({
             target: [rollingSplits.player_id, rollingSplits.prop_type, rollingSplits.games_count],
             set: {
               average: parseFloat(average.toFixed(2)),
@@ -402,7 +402,7 @@ export class PropAnalyticsService {
               hit_rate_25: parseFloat(hitRate25.toFixed(2)),
               hit_rate_35: parseFloat(hitRate35.toFixed(2)),
               last_updated: new Date()
-            }
+            } as any
           });
         }
       }

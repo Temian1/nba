@@ -39,11 +39,10 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const games = await nbaService.syncGamesForDate(gameDate);
+        await nbaService.syncGamesForDate(gameDate);
         return NextResponse.json({ 
           success: true, 
-          message: `${games.length} partidos sincronizados para ${gameDate.toDateString()}`,
-          gamesCount: games.length
+          message: `Partidos sincronizados para ${gameDate.toDateString()}`
         });
 
       case 'stats':
@@ -62,11 +61,10 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const stats = await nbaService.syncPlayerStatsForDate(statsDate);
+        await nbaService.syncPlayerStatsForDate(statsDate);
         return NextResponse.json({ 
           success: true, 
-          message: `${stats.length} estadísticas de jugadores sincronizadas para ${statsDate.toDateString()}`,
-          statsCount: stats.length
+          message: `Estadísticas de jugadores sincronizadas para ${statsDate.toDateString()}`
         });
 
       case 'daily':
@@ -78,11 +76,10 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const result = await nbaService.performDailySync(syncDate);
+        await nbaService.syncDailyData();
         return NextResponse.json({ 
           success: true, 
-          message: 'Sincronización diaria completada exitosamente',
-          result
+          message: 'Sincronización diaria completada exitosamente'
         });
 
       case 'full':
@@ -99,10 +96,11 @@ export async function POST(request: NextRequest) {
           syncDate.setDate(today.getDate() - i);
           
           try {
-            const dayResult = await nbaService.performDailySync(syncDate);
+            await nbaService.syncGamesForDate(syncDate);
+            await nbaService.syncPlayerStatsForDate(syncDate);
             fullSyncResults.push({
               date: syncDate.toDateString(),
-              ...dayResult
+              success: true
             });
           } catch (error) {
             console.error(`Error syncing data for ${syncDate.toDateString()}:`, error);

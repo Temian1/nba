@@ -15,6 +15,27 @@ export async function GET(request: NextRequest) {
     const filters = { activeOnly, search, limit, offset };
     const cacheKey = CacheService.generatePlayersKey(filters);
 
+    // Build conditions array
+    const conditions: any[] = [];
+    if (activeOnly) {
+      conditions.push(isNotNull(players.team_id));
+    }
+
+    if (search && search.trim()) {
+      const searchTerm = `%${search.trim().toLowerCase()}%`;
+      conditions.push(
+        sql`(
+          LOWER(${players.first_name}) LIKE ${searchTerm} OR 
+          LOWER(${players.last_name}) LIKE ${searchTerm} OR 
+          LOWER(CONCAT(${players.first_name}, ' ', ${players.last_name})) LIKE ${searchTerm} OR
+          LOWER(${teams.full_name}) LIKE ${searchTerm} OR
+          LOWER(${teams.abbreviation}) LIKE ${searchTerm} OR
+          LOWER(${teams.city}) LIKE ${searchTerm}
+        )`
+      );
+    }
+
+    // Build query with all conditions at once
     let query = db
       .select({
         id: players.id,
@@ -37,32 +58,13 @@ export async function GET(request: NextRequest) {
         teamDivision: teams.division
       })
       .from(players)
-      .leftJoin(teams, eq(players.team_id, teams.id))
-      .limit(limit)
-      .offset(offset);
+      .leftJoin(teams, eq(players.team_id, teams.id));
 
-    // Filter for active players (those with a team)
-    if (activeOnly) {
-      query = query.where(isNotNull(players.team_id));
+    if (conditions.length > 0) {
+      query = (query as any).where(and(...conditions));
     }
 
-    // Add search functionality
-    if (search && search.trim()) {
-      const searchTerm = `%${search.trim().toLowerCase()}%`;
-      query = query.where(
-        sql`(
-          LOWER(${players.first_name}) LIKE ${searchTerm} OR 
-          LOWER(${players.last_name}) LIKE ${searchTerm} OR 
-          LOWER(CONCAT(${players.first_name}, ' ', ${players.last_name})) LIKE ${searchTerm} OR
-          LOWER(${teams.full_name}) LIKE ${searchTerm} OR
-          LOWER(${teams.abbreviation}) LIKE ${searchTerm} OR
-          LOWER(${teams.city}) LIKE ${searchTerm}
-        )`
-      );
-    }
-
-    // Order by last name, first name
-    query = query.orderBy(players.last_name, players.first_name);
+    query = (query as any).orderBy(players.last_name, players.first_name).limit(limit).offset(offset);
 
     const result = await cacheService.getOrSet(
       cacheKey,
@@ -73,22 +75,8 @@ export async function GET(request: NextRequest) {
           .from(players)
           .leftJoin(teams, eq(players.team_id, teams.id));
 
-        if (activeOnly) {
-          countQuery = countQuery.where(isNotNull(players.team_id));
-        }
-
-        if (search && search.trim()) {
-          const searchTerm = `%${search.trim().toLowerCase()}%`;
-          countQuery = countQuery.where(
-            sql`(
-              LOWER(${players.first_name}) LIKE ${searchTerm} OR 
-              LOWER(${players.last_name}) LIKE ${searchTerm} OR 
-              LOWER(CONCAT(${players.first_name}, ' ', ${players.last_name})) LIKE ${searchTerm} OR
-              LOWER(${teams.full_name}) LIKE ${searchTerm} OR
-              LOWER(${teams.abbreviation}) LIKE ${searchTerm} OR
-              LOWER(${teams.city}) LIKE ${searchTerm}
-            )`
-          );
+        if (conditions.length > 0) {
+          countQuery = (countQuery as any).where(and(...conditions));
         }
 
         const [{ count }] = await countQuery;

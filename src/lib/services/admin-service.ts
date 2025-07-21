@@ -1,7 +1,7 @@
 import { AuthService } from './auth-service';
 import { db } from '../db';
-import { users } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { users, players, teams, games, playerStats } from '../db/schema';
+import { eq, count, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 
 export class AdminService {
@@ -100,27 +100,25 @@ export class AdminService {
     lastSyncTime?: Date;
   }> {
     try {
-      const [playersCount] = await db.execute(`SELECT COUNT(*) as count FROM players`);
-      const [teamsCount] = await db.execute(`SELECT COUNT(*) as count FROM teams`);
-      const [gamesCount] = await db.execute(`SELECT COUNT(*) as count FROM games`);
-      const [statsCount] = await db.execute(`SELECT COUNT(*) as count FROM player_stats`);
+      const [playersCount] = await db.select({ count: count() }).from(players);
+      const [teamsCount] = await db.select({ count: count() }).from(teams);
+      const [gamesCount] = await db.select({ count: count() }).from(games);
+      const [statsCount] = await db.select({ count: count() }).from(playerStats);
       
       // Get last sync time from most recent game or player stat
-      const [lastSync] = await db.execute(`
-        SELECT MAX(created_at) as last_sync 
-        FROM (
-          SELECT created_at FROM games 
-          UNION ALL 
-          SELECT created_at FROM player_stats
-        ) as combined
-      `);
+      const [lastSyncGames] = await db.select({ lastSync: sql<Date>`MAX(${games.created_at})` }).from(games);
+      const [lastSyncStats] = await db.select({ lastSync: sql<Date>`MAX(${playerStats.created_at})` }).from(playerStats);
+      
+      const lastSyncTime = lastSyncGames.lastSync && lastSyncStats.lastSync 
+        ? new Date(Math.max(lastSyncGames.lastSync.getTime(), lastSyncStats.lastSync.getTime()))
+        : lastSyncGames.lastSync || lastSyncStats.lastSync || undefined;
 
       return {
-        totalPlayers: Number(playersCount.rows[0]?.count || 0),
-        totalTeams: Number(teamsCount.rows[0]?.count || 0),
-        totalGames: Number(gamesCount.rows[0]?.count || 0),
-        totalStats: Number(statsCount.rows[0]?.count || 0),
-        lastSyncTime: lastSync.rows[0]?.last_sync ? new Date(lastSync.rows[0].last_sync) : undefined
+        totalPlayers: Number(playersCount.count || 0),
+        totalTeams: Number(teamsCount.count || 0),
+        totalGames: Number(gamesCount.count || 0),
+        totalStats: Number(statsCount.count || 0),
+        lastSyncTime
       };
     } catch (error) {
       console.error('❌ Error getting admin stats:', error);
