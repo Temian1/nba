@@ -1,0 +1,180 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { PropAnalyticsService } from '@/lib/services/prop-analytics';
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { playerId, propType, propLine, filters } = body;
+
+    // Validate required parameters
+    if (!playerId) {
+      return NextResponse.json(
+        { error: 'ID de jugador requerido' },
+        { status: 400 }
+      );
+    }
+
+    if (!propType) {
+      return NextResponse.json(
+        { error: 'Tipo de prop requerido' },
+        { status: 400 }
+      );
+    }
+
+    if (propLine === undefined || propLine === null) {
+      return NextResponse.json(
+        { error: 'Línea de prop requerida' },
+        { status: 400 }
+      );
+    }
+
+    // Validate prop line is a number
+    const numericPropLine = parseFloat(propLine);
+    if (isNaN(numericPropLine)) {
+      return NextResponse.json(
+        { error: 'La línea de prop debe ser un número válido' },
+        { status: 400 }
+      );
+    }
+
+    // Validate prop type
+    const propAnalytics = new PropAnalyticsService();
+    const availablePropTypes = await propAnalytics.getAvailablePropTypes();
+    if (!availablePropTypes.includes(propType)) {
+      return NextResponse.json(
+        { 
+          error: 'Tipo de prop no válido',
+          availableTypes: availablePropTypes
+        },
+        { status: 400 }
+      );
+    }
+
+    // Parse and validate filters
+    const parsedFilters = {
+      startDate: filters?.startDate || undefined,
+      endDate: filters?.endDate || undefined,
+      homeAway: filters?.homeAway || undefined,
+      minMinutes: filters?.minMinutes ? parseInt(filters.minMinutes) : undefined,
+      opponent: filters?.opponent || undefined,
+      lastNGames: filters?.lastNGames ? parseInt(filters.lastNGames) : undefined
+    };
+
+    // Validate date filters
+    if (parsedFilters.startDate && isNaN(Date.parse(parsedFilters.startDate))) {
+      return NextResponse.json(
+        { error: 'Fecha de inicio no válida' },
+        { status: 400 }
+      );
+    }
+
+    if (parsedFilters.endDate && isNaN(Date.parse(parsedFilters.endDate))) {
+      return NextResponse.json(
+        { error: 'Fecha de fin no válida' },
+        { status: 400 }
+      );
+    }
+
+    // Validate numeric filters
+    if (parsedFilters.minMinutes !== undefined && (isNaN(parsedFilters.minMinutes) || parsedFilters.minMinutes < 0)) {
+      return NextResponse.json(
+        { error: 'Minutos mínimos debe ser un número válido mayor o igual a 0' },
+        { status: 400 }
+      );
+    }
+
+    if (parsedFilters.lastNGames !== undefined && (isNaN(parsedFilters.lastNGames) || parsedFilters.lastNGames < 1)) {
+      return NextResponse.json(
+        { error: 'Últimos N partidos debe ser un número válido mayor a 0' },
+        { status: 400 }
+      );
+    }
+
+    // Validate homeAway filter
+    if (parsedFilters.homeAway && !['home', 'away'].includes(parsedFilters.homeAway)) {
+      return NextResponse.json(
+        { error: 'Filtro local/visitante debe ser "home" o "away"' },
+        { status: 400 }
+      );
+    }
+
+    // Analyze the prop
+    const analysis = await propAnalytics.analyzeProp(
+      parseInt(playerId),
+      propType,
+      numericPropLine,
+      parsedFilters
+    );
+
+    // Get game outcomes for detailed view
+    const gameOutcomes = await propAnalytics.getGameOutcomes(
+      parseInt(playerId),
+      propType,
+      numericPropLine,
+      parsedFilters
+    );
+
+    return NextResponse.json({
+      analysis,
+      gameOutcomes,
+      filters: parsedFilters,
+      propTypeLabel: propAnalytics.getPropTypeLabel(propType),
+      noDataAvailable: analysis.noDataAvailable || false
+    });
+
+  } catch (error) {
+    console.error('Error analyzing prop:', error);
+    
+    // Handle specific error types
+    if (error instanceof Error) {
+      if (error.message.includes('Player not found')) {
+        return NextResponse.json(
+          { error: 'Jugador no encontrado' },
+          { status: 404 }
+        );
+      }
+      
+      if (error.message.includes('No stats found')) {
+        return NextResponse.json(
+          { error: 'No se encontraron estadísticas para este jugador con los filtros aplicados' },
+          { status: 404 }
+        );
+      }
+    }
+
+    return NextResponse.json(
+      { 
+        error: 'Error interno del servidor al analizar prop',
+        details: error instanceof Error ? error.message : 'Error desconocido'
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// GET available prop types
+export async function GET() {
+  try {
+    const propAnalytics = new PropAnalyticsService();
+    const availablePropTypes = await propAnalytics.getAvailablePropTypes();
+    
+    const propTypesWithLabels = availablePropTypes.map(propType => ({
+      value: propType,
+      label: propAnalytics.getPropTypeLabel(propType)
+    }));
+
+    return NextResponse.json({
+      propTypes: propTypesWithLabels
+    });
+
+  } catch (error) {
+    console.error('Error fetching prop types:', error);
+    return NextResponse.json(
+      { 
+        error: 'Error interno del servidor al obtener tipos de props',
+        details: error instanceof Error ? error.message : 'Error desconocido'
+      },
+      { status: 500 }
+    );
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "app": {
+    "title": "Análisis de Props NBA",
+    "description": "Plataforma de análisis de apuestas de jugadores NBA"
+  },
+  "navigation": {
+    "dashboard": "Panel Principal",
+    "players": "Jugadores",
+    "analytics": "Análisis",
+    "settings": "Configuración"
+  },
+  "player": {
+    "search": "Buscar jugador...",
+    "select": "Seleccionar jugador",
+    "name": "Nombre",
+    "team": "Equipo",
+    "position": "Posición",
+    "stats": "Estadísticas",
+    "noResults": "No se encontraron jugadores"
+  },
+  "props": {
+    "type": "Tipo de Prop",
+    "line": "Línea",
+    "over": "Más de",
+    "under": "Menos de",
+    "hitRate": "Tasa de Acierto",
+    "average": "Promedio",
+    "games": "Partidos",
+    "analyze": "Analizar",
+    "results": "Resultados",
+    "outcome": "Resultado",
+    "actualValue": "Valor Real"
+  },
+  "stats": {
+    "pts": "Puntos",
+    "reb": "Rebotes",
+    "ast": "Asistencias",
+    "stl": "Robos",
+    "blk": "Bloqueos",
+    "turnover": "Pérdidas",
+    "pra": "Puntos + Rebotes + Asistencias",
+    "pr": "Puntos + Rebotes",
+    "pa": "Puntos + Asistencias",
+    "ra": "Rebotes + Asistencias",
+    "fg3m": "Triples Anotados",
+    "fgm": "Tiros de Campo Anotados",
+    "ftm": "Tiros Libres Anotados",
+    "min": "Minutos"
+  },
+  "filters": {
+    "title": "Filtros",
+    "homeAway": "Local/Visitante",
+    "home": "Local",
+    "away": "Visitante",
+    "all": "Todos",
+    "minMinutes": "Minutos Mínimos",
+    "lastNGames": "Últimos N Partidos",
+    "opponent": "Oponente",
+    "dateRange": "Rango de Fechas",
+    "startDate": "Fecha Inicio",
+    "endDate": "Fecha Fin",
+    "apply": "Aplicar Filtros",
+    "clear": "Limpiar Filtros"
+  },
+  "chart": {
+    "title": "Resultados por Partido",
+    "xAxis": "Partidos",
+    "yAxis": "Valor",
+    "overLine": "Línea Over",
+    "actualValues": "Valores Reales"
+  },
+  "summary": {
+    "title": "Resumen",
+    "totalGames": "Total de Partidos",
+    "overCount": "Partidos Over",
+    "underCount": "Partidos Under",
+    "hitRatePercentage": "Tasa de Acierto (%)",
+    "averageValue": "Valor Promedio"
+  },
+  "recentForm": {
+    "title": "Forma Reciente",
+    "last5": "Últimos 5",
+    "last10": "Últimos 10",
+    "last20": "Últimos 20"
+  },
+  "homeAway": {
+    "title": "Local vs Visitante",
+    "homeStats": "Estadísticas Local",
+    "awayStats": "Estadísticas Visitante"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "noData": "No hay datos disponibles",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "export": "Exportar",
+    "refresh": "Actualizar",
+    "date": "Fecha",
+    "vs": "vs",
+    "percentage": "%"
+  },
+  "errors": {
+    "playerNotFound": "Jugador no encontrado",
+    "noStatsAvailable": "No hay estadísticas disponibles",
+    "invalidPropLine": "Línea de prop inválida",
+    "apiError": "Error al conectar con la API",
+    "databaseError": "Error de base de datos",
+    "generalError": "Ha ocurrido un error inesperado"
+  },
+  "success": {
+    "dataUpdated": "Datos actualizados correctamente",
+    "analysisComplete": "Análisis completado",
+    "filterApplied": "Filtros aplicados"
+  }
+}
