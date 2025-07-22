@@ -768,11 +768,9 @@ export default function Dashboard() {
                 </button>
               )}
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">P</span>
-                </div>
+                
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                  {viewMode === 'feed' ? 'Props.Cash' : `${selectedPlayer?.firstName} ${selectedPlayer?.lastName}`}
+                  {viewMode === 'feed' ? '' : `${selectedPlayer?.firstName} ${selectedPlayer?.lastName}`}
                 </h1>
                 {viewMode === 'feed' && (
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
