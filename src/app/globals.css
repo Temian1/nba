@@ -24,3 +24,47 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Animaciones para la landing page */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes waveAnimation {
+  0% { transform: translateX(0) translateZ(0); }
+  50% { transform: translateX(-25%) translateZ(0); }
+  100% { transform: translateX(0) translateZ(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+.animate-wave-slow {
+  animation: waveAnimation 15s ease-in-out infinite;
+}
+
+.animate-wave-fast {
+  animation: waveAnimation 10s ease-in-out infinite reverse;
+}
+
+.delay-50 {
+  animation-delay: 50ms;
+}
+
+.delay-100 {
+  animation-delay: 100ms;
+}
+
+.delay-150 {
+  animation-delay: 150ms;
+}
+
+.delay-200 {
+  animation-delay: 200ms;
+}
+
+.delay-250 {
+  animation-delay: 250ms;
+}
