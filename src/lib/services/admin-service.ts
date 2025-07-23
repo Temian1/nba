@@ -3,6 +3,7 @@ import { db } from '../db';
 import { users, players, teams, games, playerStats } from '../db/schema';
 import { eq, count, sql } from 'drizzle-orm';
 import crypto from 'crypto';
+import { withDbFallback, CACHE_KEYS } from '../utils/db-fallback';
 
 export class AdminService {
   private static instance: AdminService;
@@ -99,31 +100,38 @@ export class AdminService {
     totalStats: number;
     lastSyncTime?: Date;
   }> {
-    try {
-      const [playersCount] = await db.select({ count: count() }).from(players);
-      const [teamsCount] = await db.select({ count: count() }).from(teams);
-      const [gamesCount] = await db.select({ count: count() }).from(games);
-      const [statsCount] = await db.select({ count: count() }).from(playerStats);
-      
-      // Get last sync time from most recent game or player stat
-      const [lastSyncGames] = await db.select({ lastSync: sql<Date>`MAX(${games.created_at})` }).from(games);
-      const [lastSyncStats] = await db.select({ lastSync: sql<Date>`MAX(${playerStats.created_at})` }).from(playerStats);
-      
-      const lastSyncTime = lastSyncGames.lastSync && lastSyncStats.lastSync 
-        ? new Date(Math.max(lastSyncGames.lastSync.getTime(), lastSyncStats.lastSync.getTime()))
-        : lastSyncGames.lastSync || lastSyncStats.lastSync || undefined;
+    return await withDbFallback(
+      async () => {
+        const [playersCount] = await db.select({ count: count() }).from(players);
+        const [teamsCount] = await db.select({ count: count() }).from(teams);
+        const [gamesCount] = await db.select({ count: count() }).from(games);
+        const [statsCount] = await db.select({ count: count() }).from(playerStats);
+        
+        // Get last sync time from most recent game or player stat
+        const [lastSyncGames] = await db.select({ lastSync: sql<Date>`MAX(${games.created_at})` }).from(games);
+        const [lastSyncStats] = await db.select({ lastSync: sql<Date>`MAX(${playerStats.created_at})` }).from(playerStats);
+        
+        const lastSyncTime = lastSyncGames.lastSync && lastSyncStats.lastSync 
+          ? new Date(Math.max(lastSyncGames.lastSync.getTime(), lastSyncStats.lastSync.getTime()))
+          : lastSyncGames.lastSync || lastSyncStats.lastSync || undefined;
 
-      return {
-        totalPlayers: Number(playersCount.count || 0),
-        totalTeams: Number(teamsCount.count || 0),
-        totalGames: Number(gamesCount.count || 0),
-        totalStats: Number(statsCount.count || 0),
-        lastSyncTime
-      };
-    } catch (error) {
-      console.error('❌ Error getting admin stats:', error);
-      throw error;
-    }
+        return {
+          totalPlayers: Number(playersCount.count || 0),
+          totalTeams: Number(teamsCount.count || 0),
+          totalGames: Number(gamesCount.count || 0),
+          totalStats: Number(statsCount.count || 0),
+          lastSyncTime
+        };
+      },
+      `${CACHE_KEYS.ADMIN}_stats`,
+      {
+        totalPlayers: 0,
+        totalTeams: 0,
+        totalGames: 0,
+        totalStats: 0,
+        lastSyncTime: undefined
+      }
+    );
   }
 
   /**

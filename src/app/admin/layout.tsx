@@ -33,9 +33,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [pathname]);
 
   const checkAuth = async () => {
+    // Skip auth check for login page
+    if (pathname === '/admin/login') {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const userData = localStorage.getItem('user');
       const token = localStorage.getItem('token');
@@ -102,6 +108,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     }
   };
 
+  // Show loading spinner
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
@@ -110,6 +117,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     );
   }
 
+  // For login page, render without admin layout
+  if (pathname === '/admin/login') {
+    return <>{children}</>;
+  }
+
+  // For other admin pages, require authentication
   if (!user) {
     return null;
   }

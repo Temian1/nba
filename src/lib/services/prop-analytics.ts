@@ -3,6 +3,8 @@ import { playerStats, propOutcomes, rollingSplits, games, players, teams } from 
 import { eq, and, gte, lte, desc, sql, avg, count } from 'drizzle-orm';
 import { subDays } from 'date-fns';
 import { cacheService, CacheService, CACHE_TTL } from './cache-service';
+import { withDbFallback } from '../db/fallback-service';
+import { CACHE_KEYS } from '../storage';
 
 export interface PropFilter {
   homeAway?: 'home' | 'away';
@@ -83,48 +85,50 @@ export class PropAnalyticsService {
   }
 
   private async getGamesWithTeammates(playerId: number, excludeTeammateIds: number[]): Promise<number[]> {
-    try {
-      // Get all games where the target player played
-      const playerGames = await db
-        .select({ game_id: playerStats.game_id, team_id: playerStats.team_id })
-        .from(playerStats)
-        .where(eq(playerStats.player_id, playerId));
-
-      const gameIdsWithExcludedTeammates: number[] = [];
-
-      // For each game, check if any excluded teammates also played
-      for (const game of playerGames) {
-        const teammatesInGame = await db
-          .select({ player_id: playerStats.player_id })
+    return await withDbFallback(
+      async () => {
+        // Get all games where the target player played
+        const playerGames = await db
+          .select({ game_id: playerStats.game_id, team_id: playerStats.team_id })
           .from(playerStats)
-          .where(
-            and(
-              eq(playerStats.game_id, game.game_id),
-              eq(playerStats.team_id, game.team_id), // Same team
-              sql`${playerStats.player_id} IN (${excludeTeammateIds.join(',')})`
-            )
-          );
+          .where(eq(playerStats.player_id, playerId));
 
-        if (teammatesInGame.length > 0) {
-          gameIdsWithExcludedTeammates.push(game.game_id);
+        const gameIdsWithExcludedTeammates: number[] = [];
+
+        // For each game, check if any excluded teammates also played
+        for (const game of playerGames) {
+          const teammatesInGame = await db
+            .select({ player_id: playerStats.player_id })
+            .from(playerStats)
+            .where(
+              and(
+                eq(playerStats.game_id, game.game_id),
+                eq(playerStats.team_id, game.team_id), // Same team
+                sql`${playerStats.player_id} IN (${excludeTeammateIds.join(',')})`
+              )
+            );
+
+          if (teammatesInGame.length > 0) {
+            gameIdsWithExcludedTeammates.push(game.game_id);
+          }
         }
-      }
 
-      return gameIdsWithExcludedTeammates;
-    } catch (error) {
-      console.error('❌ Error getting games with teammates:', error);
-      return [];
-    }
+        return gameIdsWithExcludedTeammates;
+      },
+      `${CACHE_KEYS.PROP_ANALYSIS}_teammates_${playerId}_${excludeTeammateIds.join(',')}`,
+      []
+    );
   }
 
   async getPlayerStatsWithFilters(playerId: number, filters?: PropFilter): Promise<any[]> {
-    try {
-      // Check cache first
-      const cacheKey = CacheService.generatePlayerStatsKey(playerId, filters);
-      const cached = cacheService.get<any[]>(cacheKey);
-      if (cached) {
-        return cached;
-      }
+    return await withDbFallback(
+      async () => {
+        // Check cache first
+        const cacheKey = CacheService.generatePlayerStatsKey(playerId, filters);
+        const cached = cacheService.get<any[]>(cacheKey);
+        if (cached) {
+          return cached;
+        }
 
       let whereConditions = [eq(playerStats.player_id, playerId)];
 
@@ -208,13 +212,13 @@ export class PropAnalyticsService {
         results = results.filter(stat => !gameIdsToExclude.includes(stat.game_id));
       }
 
-      // Cache the results
-      cacheService.set(cacheKey, results, CACHE_TTL.MEDIUM);
-      return results;
-    } catch (error) {
-      console.error('❌ Error fetching player stats with filters:', error);
-      throw error;
-    }
+        // Cache the results
+        cacheService.set(cacheKey, results, CACHE_TTL.MEDIUM);
+        return results;
+      },
+      `${CACHE_KEYS.PLAYER_STATS}_${playerId}_${JSON.stringify(filters)}`,
+      []
+    );
   }
 
   async analyzeProp(

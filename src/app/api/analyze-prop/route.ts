@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PropAnalyticsService } from '@/lib/services/prop-analytics';
+import { withDbFallback } from '@/lib/db/fallback-service';
+import { CACHE_KEYS } from '@/lib/storage';
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,7 +41,13 @@ export async function POST(request: NextRequest) {
 
     // Validate prop type
     const propAnalytics = new PropAnalyticsService();
-    const availablePropTypes = await propAnalytics.getAvailablePropTypes();
+    const availablePropTypes = await withDbFallback(
+      async () => {
+        return await propAnalytics.getAvailablePropTypes();
+      },
+      `${CACHE_KEYS.PROP_ANALYSIS}_available_types`,
+      ['pts', 'reb', 'ast'] // Default prop types
+    );
     if (!availablePropTypes.includes(propType)) {
       return NextResponse.json(
         { 
@@ -98,20 +106,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Analyze the prop
-    const analysis = await propAnalytics.analyzeProp(
-      parseInt(playerId),
-      propType,
-      numericPropLine,
-      parsedFilters
+    // Analyze the prop with fallback
+    const cacheKey = `${CACHE_KEYS.PROP_ANALYSIS}_${playerId}_${propType}_${numericPropLine}_${JSON.stringify(parsedFilters)}`;
+    
+    const analysis = await withDbFallback(
+      async () => {
+        return await propAnalytics.analyzeProp(
+          parseInt(playerId),
+          propType,
+          numericPropLine,
+          parsedFilters
+        );
+      },
+      cacheKey,
+      {
+        noDataAvailable: true,
+        hitRate: 0,
+        overCount: 0,
+        underCount: 0,
+        totalGames: 0,
+        averageValue: 0,
+        recommendation: 'INSUFFICIENT_DATA' as const,
+        confidence: 0,
+        recentForm: []
+      }
     );
 
-    // Get game outcomes for detailed view
-    const gameOutcomes = await propAnalytics.getGameOutcomes(
-      parseInt(playerId),
-      propType,
-      numericPropLine,
-      parsedFilters
+    // Get game outcomes for detailed view with fallback
+    const gameOutcomes = await withDbFallback(
+      async () => {
+        return await propAnalytics.getGameOutcomes(
+          parseInt(playerId),
+          propType,
+          numericPropLine,
+          parsedFilters
+        );
+      },
+      `${cacheKey}_outcomes`,
+      []
     );
 
     return NextResponse.json({

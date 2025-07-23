@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BalldontlieAPI } from '@balldontlie/sdk';
 import { cacheService, CacheService, CACHE_TTL } from '@/lib/services/cache-service';
+import { withDbFallback } from '@/lib/db/fallback-service';
+import { CACHE_KEYS } from '@/lib/storage';
 
 const api = new BalldontlieAPI({ apiKey: process.env.BALLDONTLIE_API_KEY! });
 
@@ -38,9 +40,11 @@ export async function GET(request: NextRequest) {
 
     const cacheKey = `season-averages:${season}:${seasonType}:${playerIds.sort().join(',')}`;
     
-    const result = await cacheService.getOrSet(
-      cacheKey,
+    const result = await withDbFallback(
       async () => {
+        return await cacheService.getOrSet(
+          cacheKey,
+          async () => {
         try {
           // Fetch season averages from BallDontLie API
           // Handle multiple player IDs by making separate requests if needed
@@ -124,9 +128,18 @@ export async function GET(request: NextRequest) {
           
           // Handle other API errors
           throw new Error(`API Error: ${apiError.message || 'Failed to fetch season averages'}`);
-        }
+          }
+        },
+        CACHE_TTL.LONG // Cache season averages for longer since they don't change frequently
+      );
       },
-      CACHE_TTL.LONG // Cache season averages for longer since they don't change frequently
+      `${CACHE_KEYS.SEASON_AVERAGES}_${season}_${seasonType}_${playerIds.sort().join(',')}`,
+      {
+        season: parseInt(season),
+        season_type: seasonType,
+        data: [],
+        total: 0
+      }
     );
 
     return NextResponse.json(result);
@@ -172,9 +185,11 @@ export async function POST(request: NextRequest) {
 
     const cacheKey = `season-averages-post:${season}:${season_type}:${JSON.stringify(filters)}:${player_ids.sort().join(',')}`;
     
-    const result = await cacheService.getOrSet(
-      cacheKey,
+    const result = await withDbFallback(
       async () => {
+        return await cacheService.getOrSet(
+          cacheKey,
+          async () => {
         try {
           // Handle multiple player IDs by making separate requests if needed
           let allSeasonAverages: any[] = [];
@@ -259,9 +274,19 @@ export async function POST(request: NextRequest) {
           }
           
           throw new Error(`API Error: ${apiError.message || 'Failed to fetch season averages'}`);
-        }
+          }
+        },
+        CACHE_TTL.LONG
+      );
       },
-      CACHE_TTL.LONG
+      `${CACHE_KEYS.SEASON_AVERAGES}_post_${season}_${season_type}_${JSON.stringify(filters)}_${player_ids.sort().join(',')}`,
+      {
+        season: parseInt(season),
+        season_type: season_type,
+        filters,
+        data: [],
+        total: 0
+      }
     );
 
     return NextResponse.json(result);

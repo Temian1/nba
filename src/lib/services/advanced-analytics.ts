@@ -7,6 +7,8 @@ import { db } from '../db';
 import { playerStats, games, teams, players } from '../db/schema';
 import { eq, and, gte, lte, desc, sql, avg, count, inArray } from 'drizzle-orm';
 import { subDays, format } from 'date-fns';
+import { withDbFallback } from '../db/fallback-service';
+import { CACHE_KEYS } from '../storage';
 import { cacheService, CacheService, CACHE_TTL } from './cache-service';
 
 export interface OpponentTrend {
@@ -109,9 +111,11 @@ export class AdvancedAnalyticsService {
   ): Promise<OpponentTrend[]> {
     const cacheKey = `opponent-trends:${propType}:${season}`;
     
-    return await cacheService.getOrSet(
-      cacheKey,
+    return await withDbFallback(
       async () => {
+        return await cacheService.getOrSet(
+          cacheKey,
+          async () => {
         // Get all teams and their defensive stats for the prop type
         const opponentStats = await db
           .select({
@@ -177,9 +181,13 @@ export class AdvancedAnalyticsService {
           gamesPlayed: stat.gamesPlayed,
           averageAllowed: Math.round(stat.avgAllowed * 10) / 10,
           rank: index + 1
-        }));
+          }));
+        },
+        CACHE_TTL.LONG // Opponent trends cached for 1 hour
+      );
       },
-      CACHE_TTL.LONG // Opponent trends cached for 1 hour
+      `${CACHE_KEYS.ADVANCED_ANALYTICS}_opponent_trends_${propType}_${season}`,
+      []
     );
   }
 
@@ -193,9 +201,11 @@ export class AdvancedAnalyticsService {
   ): Promise<SeasonComparison> {
     const cacheKey = `season-comparison:${playerId}:${propType}:${currentSeason}`;
     
-    return await cacheService.getOrSet(
-      cacheKey,
+    return await withDbFallback(
       async () => {
+        return await cacheService.getOrSet(
+          cacheKey,
+          async () => {
         // Current season stats
         const currentSeasonStats = await db
           .select({
@@ -300,16 +310,27 @@ export class AdvancedAnalyticsService {
           ? Math.round((1 - (playerRank - 1) / allPlayersAvg.length) * 100)
           : 0;
 
-        return {
-          currentSeason: {
-            average: Math.round(currentAverage * 10) / 10,
-            games: currentSeasonStats.length,
-            trend
-          },
-          percentileRank
-        };
+          return {
+            currentSeason: {
+              average: Math.round(currentAverage * 10) / 10,
+              games: currentSeasonStats.length,
+              trend
+            },
+            percentileRank
+          };
+        },
+        CACHE_TTL.MEDIUM // Season comparison cached for 15 minutes
+      );
       },
-      CACHE_TTL.MEDIUM // Season comparison cached for 15 minutes
+      `${CACHE_KEYS.ADVANCED_ANALYTICS}_season_comparison_${playerId}_${propType}_${currentSeason}`,
+      {
+        currentSeason: {
+          average: 0,
+          games: 0,
+          trend: 'stable' as const
+        },
+        percentileRank: 0
+      }
     );
   }
 
@@ -323,9 +344,11 @@ export class AdvancedAnalyticsService {
   ): Promise<AdvancedMetrics> {
     const cacheKey = `advanced-metrics:${playerId}:${propType}:${season}`;
     
-    return await cacheService.getOrSet(
-      cacheKey,
+    return await withDbFallback(
       async () => {
+        return await cacheService.getOrSet(
+          cacheKey,
+          async () => {
         // Get all player stats for the season
         const seasonStats = await db
           .select({
@@ -408,9 +431,42 @@ export class AdvancedAnalyticsService {
             hotStreak,
             coldStreak
           }
-        };
+          };
+        },
+        CACHE_TTL.MEDIUM // Advanced metrics cached for 15 minutes
+      );
       },
-      CACHE_TTL.MEDIUM // Advanced metrics cached for 15 minutes
+      `${CACHE_KEYS.ADVANCED_ANALYTICS}_metrics_${playerId}_${propType}_${season}`,
+      {
+        consistency: {
+          standardDeviation: 0,
+          coefficientOfVariation: 0,
+          streaks: {
+            currentStreak: { type: 'over' as const, count: 0 },
+            longestOverStreak: 0,
+            longestUnderStreak: 0
+          }
+        },
+        situational: {
+          backToBack: { average: 0, games: 0 },
+          restDays: {
+            noRest: { average: 0, games: 0 },
+            oneDay: { average: 0, games: 0 },
+            twoPlusDays: { average: 0, games: 0 }
+          },
+          timeOfSeason: {
+            early: { average: 0, games: 0 },
+            mid: { average: 0, games: 0 },
+            late: { average: 0, games: 0 }
+          }
+        },
+        momentum: {
+          last5Trend: 0,
+          last10Trend: 0,
+          hotStreak: false,
+          coldStreak: false
+        }
+      }
     );
   }
 
