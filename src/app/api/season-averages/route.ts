@@ -45,93 +45,93 @@ export async function GET(request: NextRequest) {
         return await cacheService.getOrSet(
           cacheKey,
           async () => {
-        try {
-          // Fetch season averages from BallDontLie API
-          // Handle multiple player IDs by making separate requests if needed
-          let allSeasonAverages: any[] = [];
-          
-          // If only one player ID, make a single request
-          if (playerIds.length === 1) {
-            const response = await api.nba.getSeasonAverages({
-              season: parseInt(season),
-              player_id: playerIds[0]
-            });
-            allSeasonAverages = response.data;
-          } else {
-            // For multiple player IDs, make individual requests
-            for (const playerId of playerIds) {
-              try {
+            try {
+              // Fetch season averages from BallDontLie API
+              // Handle multiple player IDs by making separate requests if needed
+              let allSeasonAverages: any[] = [];
+              
+              // If only one player ID, make a single request
+              if (playerIds.length === 1) {
                 const response = await api.nba.getSeasonAverages({
                   season: parseInt(season),
-                  player_id: playerId
+                  player_id: playerIds[0]
                 });
-                allSeasonAverages.push(...response.data);
-                // Add small delay to respect rate limits
-                await new Promise(resolve => setTimeout(resolve, 100));
-              } catch (error) {
-                console.warn(`Failed to fetch season averages for player ${playerId}:`, error);
-                // Continue with other players
+                allSeasonAverages = response.data;
+              } else {
+                // For multiple player IDs, make individual requests
+                for (const playerId of playerIds) {
+                  try {
+                    const response = await api.nba.getSeasonAverages({
+                      season: parseInt(season),
+                      player_id: playerId
+                    });
+                    allSeasonAverages.push(...response.data);
+                    // Add small delay to respect rate limits
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                  } catch (error) {
+                    console.warn(`Failed to fetch season averages for player ${playerId}:`, error);
+                    // Continue with other players
+                  }
+                }
               }
+
+              // Transform the response to match our expected format
+              const seasonAverages = allSeasonAverages.map((avg: any) => ({
+                player_id: avg.player_id,
+                season: avg.season,
+                games_played: avg.games_played,
+                player_name: `${avg.player?.first_name || ''} ${avg.player?.last_name || ''}`.trim(),
+                team_abbreviation: avg.player?.team?.abbreviation || '',
+                // Basic stats
+                pts: parseFloat((avg.pts || 0).toFixed(1)),
+                reb: parseFloat((avg.reb || 0).toFixed(1)),
+                ast: parseFloat((avg.ast || 0).toFixed(1)),
+                stl: parseFloat((avg.stl || 0).toFixed(1)),
+                blk: parseFloat((avg.blk || 0).toFixed(1)),
+                turnover: parseFloat((avg.turnover || 0).toFixed(1)),
+                // Shooting stats
+                fgm: parseFloat((avg.fgm || 0).toFixed(1)),
+                fga: parseFloat((avg.fga || 0).toFixed(1)),
+                fg_pct: parseFloat((avg.fg_pct || 0).toFixed(3)),
+                fg3m: parseFloat((avg.fg3m || 0).toFixed(1)),
+                fg3a: parseFloat((avg.fg3a || 0).toFixed(1)),
+                fg3_pct: parseFloat((avg.fg3_pct || 0).toFixed(3)),
+                ftm: parseFloat((avg.ftm || 0).toFixed(1)),
+                fta: parseFloat((avg.fta || 0).toFixed(1)),
+                ft_pct: parseFloat((avg.ft_pct || 0).toFixed(3)),
+                // Rebounds breakdown
+                oreb: parseFloat((avg.oreb || 0).toFixed(1)),
+                dreb: parseFloat((avg.dreb || 0).toFixed(1)),
+                // Other stats
+                pf: parseFloat((avg.pf || 0).toFixed(1)),
+                min: avg.min ? parseFloat(avg.min.toFixed(1)) : 0,
+                // Composite stats
+                pra: parseFloat(((avg.pts || 0) + (avg.reb || 0) + (avg.ast || 0)).toFixed(1)),
+                pr: parseFloat(((avg.pts || 0) + (avg.reb || 0)).toFixed(1)),
+                pa: parseFloat(((avg.pts || 0) + (avg.ast || 0)).toFixed(1)),
+                ra: parseFloat(((avg.reb || 0) + (avg.ast || 0)).toFixed(1))
+              }));
+
+              return {
+                season: parseInt(season),
+                season_type: seasonType,
+                data: seasonAverages,
+                total: seasonAverages.length
+              };
+            } catch (apiError: any) {
+              console.error('BallDontLie API Error:', apiError);
+              
+              // Handle rate limiting
+              if (apiError.status === 429) {
+                throw new Error('Rate limit exceeded. Please try again later.');
+              }
+              
+              // Handle other API errors
+              throw new Error(`API Error: ${apiError.message || 'Failed to fetch season averages'}`);
             }
-          }
-
-          // Transform the response to match our expected format
-          const seasonAverages = allSeasonAverages.map((avg: any) => ({
-            player_id: avg.player_id,
-            season: avg.season,
-            games_played: avg.games_played,
-            player_name: `${avg.player?.first_name || ''} ${avg.player?.last_name || ''}`.trim(),
-            team_abbreviation: avg.player?.team?.abbreviation || '',
-            // Basic stats
-            pts: parseFloat((avg.pts || 0).toFixed(1)),
-            reb: parseFloat((avg.reb || 0).toFixed(1)),
-            ast: parseFloat((avg.ast || 0).toFixed(1)),
-            stl: parseFloat((avg.stl || 0).toFixed(1)),
-            blk: parseFloat((avg.blk || 0).toFixed(1)),
-            turnover: parseFloat((avg.turnover || 0).toFixed(1)),
-            // Shooting stats
-            fgm: parseFloat((avg.fgm || 0).toFixed(1)),
-            fga: parseFloat((avg.fga || 0).toFixed(1)),
-            fg_pct: parseFloat((avg.fg_pct || 0).toFixed(3)),
-            fg3m: parseFloat((avg.fg3m || 0).toFixed(1)),
-            fg3a: parseFloat((avg.fg3a || 0).toFixed(1)),
-            fg3_pct: parseFloat((avg.fg3_pct || 0).toFixed(3)),
-            ftm: parseFloat((avg.ftm || 0).toFixed(1)),
-            fta: parseFloat((avg.fta || 0).toFixed(1)),
-            ft_pct: parseFloat((avg.ft_pct || 0).toFixed(3)),
-            // Rebounds breakdown
-            oreb: parseFloat((avg.oreb || 0).toFixed(1)),
-            dreb: parseFloat((avg.dreb || 0).toFixed(1)),
-            // Other stats
-            pf: parseFloat((avg.pf || 0).toFixed(1)),
-            min: avg.min ? parseFloat(avg.min.toFixed(1)) : 0,
-            // Composite stats
-            pra: parseFloat(((avg.pts || 0) + (avg.reb || 0) + (avg.ast || 0)).toFixed(1)),
-            pr: parseFloat(((avg.pts || 0) + (avg.reb || 0)).toFixed(1)),
-            pa: parseFloat(((avg.pts || 0) + (avg.ast || 0)).toFixed(1)),
-            ra: parseFloat(((avg.reb || 0) + (avg.ast || 0)).toFixed(1))
-          }));
-
-          return {
-            season: parseInt(season),
-            season_type: seasonType,
-            data: seasonAverages,
-            total: seasonAverages.length
-          };
-        } catch (apiError: any) {
-          console.error('BallDontLie API Error:', apiError);
-          
-          // Handle rate limiting
-          if (apiError.status === 429) {
-            throw new Error('Rate limit exceeded. Please try again later.');
-          }
-          
-          // Handle other API errors
-          throw new Error(`API Error: ${apiError.message || 'Failed to fetch season averages'}`);
-          }
-        },
-        CACHE_TTL.LONG // Cache season averages for longer since they don't change frequently
-      );
+          },
+          CACHE_TTL.LONG // Cache season averages for longer since they don't change frequently
+        );
       },
       `${CACHE_KEYS.SEASON_AVERAGES}_${season}_${seasonType}_${playerIds.sort().join(',')}`,
       {
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
         return await cacheService.getOrSet(
           cacheKey,
           async () => {
-        try {
+            try {
           // Handle multiple player IDs by making separate requests if needed
           let allSeasonAverages: any[] = [];
           
@@ -274,10 +274,10 @@ export async function POST(request: NextRequest) {
           }
           
           throw new Error(`API Error: ${apiError.message || 'Failed to fetch season averages'}`);
-          }
-        },
-        CACHE_TTL.LONG
-      );
+            }
+          },
+          CACHE_TTL.LONG
+        );
       },
       `${CACHE_KEYS.SEASON_AVERAGES}_post_${season}_${season_type}_${JSON.stringify(filters)}_${player_ids.sort().join(',')}`,
       {

@@ -3,7 +3,8 @@ import { db } from '../db';
 import { users, players, teams, games, playerStats } from '../db/schema';
 import { eq, count, sql } from 'drizzle-orm';
 import crypto from 'crypto';
-import { withDbFallback, CACHE_KEYS } from '../utils/db-fallback';
+import { withDbFallback } from '../db/fallback-service';
+import { CACHE_KEYS } from '../storage';
 
 export class AdminService {
   private static instance: AdminService;
@@ -129,7 +130,7 @@ export class AdminService {
         totalTeams: 0,
         totalGames: 0,
         totalStats: 0,
-        lastSyncTime: undefined
+        lastSyncTime: new Date(0) // Unix epoch start date as fallback
       }
     );
   }

@@ -120,16 +120,24 @@ export async function POST(request: NextRequest) {
       },
       cacheKey,
       {
-        noDataAvailable: true,
-        hitRate: 0,
-        overCount: 0,
-        underCount: 0,
-        totalGames: 0,
-        averageValue: 0,
-        recommendation: 'INSUFFICIENT_DATA' as const,
-        confidence: 0,
-        recentForm: []
-      }
+          propType,
+          propLine: numericPropLine,
+          noDataAvailable: true,
+          hitRate: 0,
+          average: 0,
+          overCount: 0,
+          underCount: 0,
+          totalGames: 0,
+          recentForm: {
+            last5: { hitRate: 0, average: 0 },
+            last10: { hitRate: 0, average: 0 },
+            last20: { hitRate: 0, average: 0 }
+          },
+          homeAwayStats: {
+            home: { hitRate: 0, average: 0, games: 0 },
+            away: { hitRate: 0, average: 0, games: 0 }
+          }
+        }
     );
 
     // Get game outcomes for detailed view with fallback

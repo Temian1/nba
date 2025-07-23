@@ -129,7 +129,10 @@ export const CACHE_KEYS = {
   ROLLING_SPLITS: 'nba_rolling_splits',
   RECENT_SEARCHES: 'nba_recent_searches',
   FILTER_HISTORY: 'nba_filter_history',
-  GAME_STATS: 'nba_game_stats'
+  GAME_STATS: 'nba_game_stats',
+  SEASON_AVERAGES: 'nba_season_averages',
+  ADMIN: 'nba_admin',
+  ADVANCED_ANALYTICS: 'nba_advanced_analytics'
 } as const;
 
 // TTL constants (in milliseconds)
