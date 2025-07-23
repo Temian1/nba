@@ -19,9 +19,9 @@ export default function Home() {
     const token = localStorage.getItem('auth_token');
     
     // If user is logged in, redirect to dashboard
-    if (userData && token) {
-      router.push('/admin/dashboard');
-    }
+     if (userData && token) {
+       router.push('/dashboard');
+     }
   }, [router]);
 
   return (
