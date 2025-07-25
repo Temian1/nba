@@ -165,9 +165,9 @@ class DatabaseFallbackService {
    * Force retry database connection
    */
   async forceRetryConnection(): Promise<boolean> {
-    // Skip database connection test during build time
-    if (process.env.NODE_ENV === 'production' || process.env.NEXT_PHASE === 'phase-production-build') {
-      console.log('⏭️ Skipping database connection test during build or production');
+    // Skip database connection test during build time only
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      console.log('⏭️ Skipping database connection test during build');
       return true;
     }
     
@@ -200,9 +200,9 @@ export const withDbFallback = <T>(
   defaultValue: T,
   ttl?: number
 ) => {
-  // Skip database operations during build time or production
-  if (process.env.NODE_ENV === 'production' || process.env.NEXT_PHASE === 'phase-production-build') {
-    console.log(`⏭️ Skipping database operation for ${cacheKey} during build or production`);
+  // Skip database operations during build time only
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    console.log(`⏭️ Skipping database operation for ${cacheKey} during build`);
     return Promise.resolve(defaultValue);
   }
   
@@ -219,9 +219,9 @@ export const withDbWrite = <T>(
   operation: () => Promise<T>,
   errorMessage?: string
 ) => {
-  // Skip database operations during build time or production
-  if (process.env.NODE_ENV === 'production' || process.env.NEXT_PHASE === 'phase-production-build') {
-    console.log(`⏭️ Skipping database write operation during build or production`);
+  // Skip database operations during build time only
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    console.log(`⏭️ Skipping database write operation during build`);
     return Promise.resolve(null);
   }
   
