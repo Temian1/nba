@@ -108,7 +108,7 @@ export default function PropAnalyzer({ playerId, playerName, filters }: PropAnal
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t('props.type')}
+              Tipo de Prop
             </label>
             <select
               value={selectedPropType}
@@ -125,7 +125,7 @@ export default function PropAnalyzer({ playerId, playerName, filters }: PropAnal
           
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t('props.line')}
+              Línea de Apuesta (Over/Under)
             </label>
             <input
               type="number"
@@ -136,6 +136,9 @@ export default function PropAnalyzer({ playerId, playerName, filters }: PropAnal
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               placeholder="Ej: 20.5"
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Ingresa la línea para ver cuántas veces el jugador la superó
+            </p>
           </div>
         </div>
       </div>
@@ -184,8 +187,37 @@ export default function PropAnalyzer({ playerId, playerName, filters }: PropAnal
           </TabsList>
 
           <TabsContent value="basic" className="space-y-6">
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Prop Line Summary */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6 mb-6">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Análisis para {PROP_TYPES.find(p => p.value === selectedPropType)?.label} {propLine}
+              </h3>
+              <div className="flex items-center justify-center space-x-8">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                    {analysis.overCount}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Veces que superó</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-red-600 dark:text-red-400">
+                    {analysis.underCount}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Veces que no superó</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                    {analysis.totalGames}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Total de partidos</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
@@ -193,10 +225,13 @@ export default function PropAnalyzer({ playerId, playerName, filters }: PropAnal
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {t('props.hitRate')}
+                    Tasa de Éxito (Over)
                   </p>
                   <p className="text-2xl font-semibold text-gray-900 dark:text-white">
                     {formatPercentage(analysis.hitRate)}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {analysis.overCount} de {analysis.totalGames} partidos
                   </p>
                 </div>
               </div>
@@ -209,46 +244,13 @@ export default function PropAnalyzer({ playerId, playerName, filters }: PropAnal
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {t('props.average')}
+                    Promedio Real
                   </p>
                   <p className="text-2xl font-semibold text-gray-900 dark:text-white">
                     {formatNumber(analysis.average)}
                   </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="h-8 w-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                    <span className="text-green-600 dark:text-green-400 font-bold">+</span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Over
-                  </p>
-                  <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                    {analysis.overCount}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="h-8 w-8 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-                    <span className="text-red-600 dark:text-red-400 font-bold">-</span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Under
-                  </p>
-                  <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                    {analysis.underCount}
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    vs Línea {propLine}
                   </p>
                 </div>
               </div>
@@ -258,8 +260,15 @@ export default function PropAnalyzer({ playerId, playerName, filters }: PropAnal
           {/* Chart */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              {t('chart.title')}
+              Rendimiento por Partido
             </h3>
+            <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                <span className="font-medium">Verde:</span> Superó la línea ({propLine}) • 
+                <span className="font-medium">Rojo:</span> No superó la línea • 
+                <span className="font-medium">Línea roja punteada:</span> Línea de apuesta
+              </p>
+            </div>
             <PropChart
               gameOutcomes={gameOutcomes}
               propLine={propLine}
@@ -270,40 +279,49 @@ export default function PropAnalyzer({ playerId, playerName, filters }: PropAnal
           {/* Recent Form */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              {t('recentForm.title')}
+              Forma Reciente vs Línea {propLine}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                 <h4 className="font-medium text-gray-900 dark:text-white mb-2">
-                  {t('recentForm.last5')}
+                  Últimos 5 Partidos
                 </h4>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Tasa: {formatPercentage(analysis.recentForm.last5.hitRate)}
+                  Tasa de Éxito: {formatPercentage(analysis.recentForm.last5.hitRate)}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   Promedio: {formatNumber(analysis.recentForm.last5.average)}
                 </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {Math.round(analysis.recentForm.last5.hitRate / 100 * Math.min(5, analysis.totalGames))} de {Math.min(5, analysis.totalGames)} veces superó
+                </p>
               </div>
               <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                 <h4 className="font-medium text-gray-900 dark:text-white mb-2">
-                  {t('recentForm.last10')}
+                  Últimos 10 Partidos
                 </h4>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Tasa: {formatPercentage(analysis.recentForm.last10.hitRate)}
+                  Tasa de Éxito: {formatPercentage(analysis.recentForm.last10.hitRate)}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   Promedio: {formatNumber(analysis.recentForm.last10.average)}
                 </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {Math.round(analysis.recentForm.last10.hitRate / 100 * Math.min(10, analysis.totalGames))} de {Math.min(10, analysis.totalGames)} veces superó
+                </p>
               </div>
               <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                 <h4 className="font-medium text-gray-900 dark:text-white mb-2">
-                  {t('recentForm.last20')}
+                  Últimos 20 Partidos
                 </h4>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Tasa: {formatPercentage(analysis.recentForm.last20.hitRate)}
+                  Tasa de Éxito: {formatPercentage(analysis.recentForm.last20.hitRate)}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   Promedio: {formatNumber(analysis.recentForm.last20.average)}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {Math.round(analysis.recentForm.last20.hitRate / 100 * Math.min(20, analysis.totalGames))} de {Math.min(20, analysis.totalGames)} veces superó
                 </p>
               </div>
             </div>
@@ -312,29 +330,35 @@ export default function PropAnalyzer({ playerId, playerName, filters }: PropAnal
           {/* Home/Away Stats */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              {t('homeAway.title')}
+              Rendimiento Local vs Visitante
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                 <h4 className="font-medium text-gray-900 dark:text-white mb-2">
-                  {t('homeAway.homeStats')} ({analysis.homeAwayStats.home.games} partidos)
+                  Como Local ({analysis.homeAwayStats.home.games} partidos)
                 </h4>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Tasa: {formatPercentage(analysis.homeAwayStats.home.hitRate)}
+                  Tasa de Éxito: {formatPercentage(analysis.homeAwayStats.home.hitRate)}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   Promedio: {formatNumber(analysis.homeAwayStats.home.average)}
                 </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {Math.round(analysis.homeAwayStats.home.hitRate / 100 * analysis.homeAwayStats.home.games)} de {analysis.homeAwayStats.home.games} veces superó {propLine}
+                </p>
               </div>
               <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                 <h4 className="font-medium text-gray-900 dark:text-white mb-2">
-                  {t('homeAway.awayStats')} ({analysis.homeAwayStats.away.games} partidos)
+                  Como Visitante ({analysis.homeAwayStats.away.games} partidos)
                 </h4>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Tasa: {formatPercentage(analysis.homeAwayStats.away.hitRate)}
+                  Tasa de Éxito: {formatPercentage(analysis.homeAwayStats.away.hitRate)}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   Promedio: {formatNumber(analysis.homeAwayStats.away.average)}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {Math.round(analysis.homeAwayStats.away.hitRate / 100 * analysis.homeAwayStats.away.games)} de {analysis.homeAwayStats.away.games} veces superó {propLine}
                 </p>
               </div>
             </div>

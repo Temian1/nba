@@ -1166,11 +1166,31 @@ export default function Dashboard() {
         ) : (
           /* Player Detail View */
           selectedPlayer && (
-            <PropAnalyzer
-              playerId={selectedPlayer.id}
-              playerName={`${selectedPlayer.firstName} ${selectedPlayer.lastName}`}
-              filters={filters}
-            />
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg shadow-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    Analyzing {selectedPlayer.firstName} {selectedPlayer.lastName}
+                  </h2>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {selectedPlayer.position} • {selectedPlayer.teamAbbreviation}
+                    </span>
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    💡 <strong>Instructions:</strong> Select a prop type (Points, Rebounds, Assists) and a betting line to see how many times {selectedPlayer.firstName} {selectedPlayer.lastName} exceeded that line in recent games.
+                  </p>
+                </div>
+              </div>
+              
+              <PropAnalyzer
+                playerId={selectedPlayer.id}
+                playerName={`${selectedPlayer.firstName} ${selectedPlayer.lastName}`}
+                filters={filters}
+              />
+            </div>
           )
         )}
       </div>

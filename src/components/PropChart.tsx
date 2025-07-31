@@ -59,18 +59,18 @@ export default function PropChart({ gameOutcomes, propLine, propType }: PropChar
     datasets: [
       {
         type: 'line' as const,
-        label: 'Línea Over/Under',
+        label: `Línea de Apuesta (${propLine})`,
         data: new Array(labels.length).fill(propLine),
         borderColor: 'rgb(239, 68, 68)',
         backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        borderWidth: 2,
-        borderDash: [5, 5],
+        borderWidth: 3,
+        borderDash: [8, 4],
         pointRadius: 0,
         tension: 0
       },
       {
         type: 'bar' as const,
-        label: 'Valor Real',
+        label: `Rendimiento Real (${getPropTypeLabel(propType)})`,
         data: actualValues,
         backgroundColor: results.map(result => 
           result === 'over' 
