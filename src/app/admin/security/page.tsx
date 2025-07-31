@@ -43,30 +43,10 @@ const defaultSecuritySettings: SecuritySettings = {
   }
 };
 
-// Sample login history data
+// Real login history would be fetched from authentication service in production
 const generateSampleLoginHistory = (): LoginHistory[] => {
-  const history: LoginHistory[] = [];
-  const ips = ['192.168.1.100', '10.0.0.50', '172.16.0.25', '203.0.113.45'];
-  const userAgents = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'
-  ];
-  const locations = ['New York, NY', 'Los Angeles, CA', 'Chicago, IL', 'Houston, TX'];
-
-  for (let i = 0; i < 20; i++) {
-    const timestamp = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString();
-    history.push({
-      id: `login_${i + 1}`,
-      timestamp,
-      ip: ips[Math.floor(Math.random() * ips.length)],
-      userAgent: userAgents[Math.floor(Math.random() * userAgents.length)],
-      success: Math.random() > 0.1, // 90% success rate
-      location: locations[Math.floor(Math.random() * locations.length)]
-    });
-  }
-
-  return history.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  // Return empty array - login history would come from real auth API
+  return [];
 };
 
 export default function AdminSecurity() {
@@ -122,14 +102,13 @@ export default function AdminSecurity() {
 
   const loadLoginHistory = () => {
     try {
-      const saved = localStorage.getItem('admin_login_history');
-      if (saved) {
-        setLoginHistory(JSON.parse(saved));
-      } else {
-        const sampleHistory = generateSampleLoginHistory();
-        localStorage.setItem('admin_login_history', JSON.stringify(sampleHistory));
-        setLoginHistory(sampleHistory);
-      }
+      // Real implementation would fetch login history from API
+      // const response = await fetch('/api/admin/login-history');
+      // const data = await response.json();
+      // setLoginHistory(data.history);
+      
+      // For now, show empty login history
+      setLoginHistory([]);
     } catch (error) {
       console.error('Error loading login history:', error);
     }

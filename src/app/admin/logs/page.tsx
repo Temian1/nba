@@ -42,61 +42,11 @@ const LOG_CATEGORIES = [
   { value: 'database', label: 'Database', icon: '🗄️' }
 ];
 
-// Sample log data - in a real app, this would come from an API
+// Real log data would be fetched from a logging service/database in production
+// This component is ready to integrate with actual logging infrastructure
 const generateSampleLogs = (): LogEntry[] => {
-  const logs: LogEntry[] = [];
-  const messages = {
-    error: [
-      'Failed to fetch player data from BallDontLie API',
-      'Database connection timeout',
-      'Authentication token expired',
-      'Failed to sync game data',
-      'User session validation failed'
-    ],
-    warn: [
-      'API rate limit approaching (80% used)',
-      'Large dataset detected, consider pagination',
-      'Deprecated API endpoint used',
-      'Cache miss for frequently accessed data',
-      'Slow query detected (>2s)'
-    ],
-    info: [
-      'User logged in successfully',
-      'Sync job completed successfully',
-      'New player data synchronized',
-      'Cache refreshed',
-      'Backup completed'
-    ],
-    debug: [
-      'API request initiated',
-      'Cache lookup performed',
-      'Database query executed',
-      'Component rendered',
-      'State updated'
-    ]
-  };
-
-  for (let i = 0; i < 100; i++) {
-    const level = ['error', 'warn', 'info', 'debug'][Math.floor(Math.random() * 4)] as LogEntry['level'];
-    const category = ['api', 'sync', 'auth', 'system', 'ui', 'database'][Math.floor(Math.random() * 6)] as LogEntry['category'];
-    const timestamp = new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString();
-    
-    logs.push({
-      id: `log_${i + 1}`,
-      timestamp,
-      level,
-      category,
-      message: messages[level][Math.floor(Math.random() * messages[level].length)],
-      details: level === 'error' ? 'Additional error context and debugging information...' : undefined,
-      source: `${category}-service.ts:${Math.floor(Math.random() * 500) + 1}`,
-      userId: Math.random() > 0.5 ? `user_${Math.floor(Math.random() * 1000)}` : undefined,
-      ip: `192.168.1.${Math.floor(Math.random() * 255)}`,
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      stack: level === 'error' ? `Error: ${messages[level][0]}\n    at Function.fetchData (api-service.ts:45:12)\n    at async handler (route.ts:23:5)` : undefined
-    });
-  }
-
-  return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  // Return empty array - logs would come from real logging API
+  return [];
 };
 
 export default function AdminLogs() {
@@ -143,15 +93,13 @@ export default function AdminLogs() {
       // const response = await fetch('/api/admin/logs');
       // const data = await response.json();
       
-      // For demo purposes, load from localStorage or generate sample data
-      const savedLogs = localStorage.getItem('admin_logs');
-      if (savedLogs) {
-        setLogs(JSON.parse(savedLogs));
-      } else {
-        const sampleLogs = generateSampleLogs();
-        localStorage.setItem('admin_logs', JSON.stringify(sampleLogs));
-        setLogs(sampleLogs);
-      }
+      // Real implementation would fetch logs from API
+      // const response = await fetch('/api/admin/logs');
+      // const data = await response.json();
+      // setLogs(data.logs);
+      
+      // For now, show empty logs array
+      setLogs([]);
     } catch (error) {
       console.error('Error loading logs:', error);
     } finally {
