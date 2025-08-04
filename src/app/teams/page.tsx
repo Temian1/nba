@@ -201,9 +201,17 @@ export default function TeamsPage() {
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg group-hover:scale-110 transition-transform">
-                          {team.abbreviation}
-                        </div>
+                        {team.logo ? (
+                          <img 
+                            src={team.logo} 
+                            alt={`${team.fullName} logo`} 
+                            className="w-12 h-12 object-contain group-hover:scale-110 transition-transform"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg group-hover:scale-110 transition-transform">
+                            {team.abbreviation}
+                          </div>
+                        )}
                         <div>
                           <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
                             {team.name}

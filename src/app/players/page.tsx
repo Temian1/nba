@@ -53,7 +53,7 @@ export default function PlayersPage() {
       
       setError(null);
       const offset = (page - 1) * 25;
-      const response = await fetch(`/api/players?limit=25&offset=${offset}`);
+      const response = await fetch(`/api/players?active=true&limit=25&offset=${offset}`);
       
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);

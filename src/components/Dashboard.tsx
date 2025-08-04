@@ -128,9 +128,8 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
 
   const handlePlayerSelect = (player: SelectedPlayer) => {
-    setSelectedPlayer(player);
-    setViewMode('player');
-    setDbError(null);
+    // Navigate to dedicated player details page
+    window.location.href = `/player/${player.id}`;
   };
 
   const handleDatabaseError = (error: string) => {
@@ -472,11 +471,11 @@ export default function Dashboard() {
   }, [searchTerm, selectedTeam]);
 
   const propTypes = [
-    { value: 'pts', label: 'Points' },
-    { value: 'reb', label: 'Rebounds' },
-    { value: 'ast', label: 'Assists' },
-    { value: 'stl', label: 'Steals' },
-    { value: 'blk', label: 'Blocks' },
+    { value: 'pts', label: 'Puntos' },
+    { value: 'reb', label: 'Rebotes' },
+    { value: 'ast', label: 'Asistencias' },
+    { value: 'stl', label: 'Robos' },
+    { value: 'blk', label: 'Bloqueos' },
     { value: 'fg3m', label: '3PM' },
     { value: 'pra', label: 'PRA' },
     { value: 'pr', label: 'P+R' },
@@ -563,13 +562,13 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Database Error Message */}
+      {/* Mensaje de Error de Base de Datos */}
       {dbError && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 mx-4">
           <h3 className="text-lg font-semibold text-red-800 mb-2">
-            🚨 Database Error
+            🚨 Error de Base de Datos
           </h3>
-          <p className="text-sm text-red-700">Please check your database connection and try again.</p>
+          <p className="text-sm text-red-700">Por favor, verifique su conexión a la base de datos y vuelva a intentarlo.</p>
         </div>
       )}
 
@@ -583,7 +582,7 @@ export default function Dashboard() {
                   onClick={handleBackToFeed}
                   className="flex items-center text-blue-600 hover:text-blue-800 transition-colors font-medium"
                 >
-                  ← Back to Feed
+                  ← Volver al Feed
                 </button>
               )}
               <div className="flex items-center space-x-3">

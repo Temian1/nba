@@ -10,10 +10,13 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   // Force IPv4 to resolve DNS issues
   options: '--client_encoding=UTF8',
-  connectionTimeoutMillis: 10000,
-  idleTimeoutMillis: 30000,
-  max: 20, // Maximum number of clients in the pool
-  min: 2,  // Minimum number of clients in the pool
+  connectionTimeoutMillis: 5000,  // Reduced from 10s to 5s
+  idleTimeoutMillis: 20000,       // Reduced from 30s to 20s
+  query_timeout: 8000,            // Add query timeout
+  statement_timeout: 8000,        // Add statement timeout
+  max: 10,                        // Reduced pool size
+  min: 1,                         // Reduced minimum
+  allowExitOnIdle: true,          // Allow pool to close when idle
 });
 
 // Handle pool errors
@@ -34,6 +37,15 @@ pool.on('remove', (client) => {
 export const db = drizzle(pool, { schema });
 
 export type Database = typeof db;
+
+// Query timeout wrapper
+export const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> => {
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error(`Query timeout after ${timeoutMs}ms`)), timeoutMs);
+  });
+  
+  return Promise.race([promise, timeoutPromise]);
+};
 
 // Helper function to close the database connection
 export const closeDb = async () => {
