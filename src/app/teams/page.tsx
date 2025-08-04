@@ -14,6 +14,7 @@ interface Team {
   division: string;
   fullName: string;
   name: string;
+  logo?: string;
 }
 
 interface TeamsResponse {
