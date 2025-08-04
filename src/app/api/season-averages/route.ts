@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
                 dreb: parseFloat((avg.dreb || 0).toFixed(1)),
                 // Other stats
                 pf: parseFloat((avg.pf || 0).toFixed(1)),
-                min: avg.min ? parseFloat(avg.min.toFixed(1)) : 0,
+                min: avg.min ? parseFloat((parseFloat(avg.min) || 0).toFixed(1)) : 0,
                 // Composite stats
                 pra: parseFloat(((avg.pts || 0) + (avg.reb || 0) + (avg.ast || 0)).toFixed(1)),
                 pr: parseFloat(((avg.pts || 0) + (avg.reb || 0)).toFixed(1)),
