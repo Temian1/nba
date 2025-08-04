@@ -343,10 +343,10 @@ export default function Dashboard() {
     return filtered;
   }, [propBets, selectedSection, selectedGames, selectedProps, sortColumn, sortDirection]);
 
-  // Fetch data on component mount and filter changes
+  // Fetch data on component mount only
   useEffect(() => {
     fetchPropBets();
-  }, [selectedSection, selectedGames, selectedProps]);
+  }, []);
 
   if (loading) {
     return (

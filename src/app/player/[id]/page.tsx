@@ -315,7 +315,7 @@ export default function PlayerDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <LoadingSpinner />
       </div>
     );
@@ -323,13 +323,13 @@ export default function PlayerDetailsPage() {
 
   if (error || !player) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="text-4xl mb-4">❌</div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+          <h2 className="text-xl font-semibold text-white mb-2">
             Error al cargar jugador
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-gray-400 mb-4">
             {error || 'No se pudo encontrar el jugador'}
           </p>
           <button
@@ -344,56 +344,17 @@ export default function PlayerDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gray-900">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <button
             onClick={() => router.back()}
-            className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-4 transition-colors"
+            className="flex items-center text-gray-400 hover:text-white mb-4 transition-colors"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
             Volver al Dashboard
           </button>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-2xl">
-                  {player.firstName[0]}{player.lastName[0]}
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                    {player.firstName} {player.lastName}
-                  </h1>
-                  <div className="flex items-center space-x-4 mt-2">
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                      #{player.jerseyNumber} • {player.position}
-                    </Badge>
-                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-                      {player.teamAbbreviation} • {player.teamName}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  📏 {player.height} • ⚖️ {player.weight}
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  🎓 {player.college || 'N/A'}
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  🌍 {player.country || 'USA'}
-                </p>
-                {player.draftYear && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    📅 Draft {player.draftYear} R{player.draftRound} #{player.draftNumber}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
@@ -575,50 +536,50 @@ export default function PlayerDetailsPage() {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="bg-gray-800 border-gray-700">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-white font-medium">Minutos</span>
-                    <span className="text-white text-lg font-bold">
-                      {seasonAverages ? parseFloat(seasonAverages.min?.toString() || '0').toFixed(1) : '--'}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-700 rounded-full h-2">
-                    <div 
-                      className="bg-blue-500 h-2 rounded-full" 
-                      style={{ 
-                        width: seasonAverages ? `${Math.min((parseFloat(seasonAverages.min?.toString() || '0') / 48) * 100, 100)}%` : '0%' 
-                      }}
-                    ></div>
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">
-                    {seasonAverages ? `${Math.round((parseFloat(seasonAverages.min?.toString() || '0') / 48) * 100)}% de 48 min` : 'Sin datos'}
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">Puntos</h3>
+                  <Target className="w-5 h-5 text-green-500" />
+                </div>
+                <div className="text-3xl font-bold text-white mb-2">
+                  {seasonAverages?.pts?.toFixed(1) || 'N/A'}
+                </div>
+                <p className="text-sm text-gray-400">por partido</p>
+              </div>
 
-              <Card className="bg-gray-800 border-gray-700">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-white font-medium">Robos</span>
-                    <span className="text-white text-lg font-bold">
-                      {seasonAverages ? parseFloat(seasonAverages.stl?.toString() || '0').toFixed(1) : '--'}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-700 rounded-full h-2">
-                    <div 
-                      className="bg-green-500 h-2 rounded-full" 
-                      style={{ 
-                        width: seasonAverages ? `${Math.min((parseFloat(seasonAverages.stl?.toString() || '0') / 3) * 100, 100)}%` : '0%' 
-                      }}
-                    ></div>
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">
-                    {seasonAverages ? `${Math.round((parseFloat(seasonAverages.stl?.toString() || '0') / 3) * 100)}% de 3.0 máx` : 'Sin datos'}
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">Rebotes</h3>
+                  <Activity className="w-5 h-5 text-blue-500" />
+                </div>
+                <div className="text-3xl font-bold text-white mb-2">
+                  {seasonAverages?.reb?.toFixed(1) || 'N/A'}
+                </div>
+                <p className="text-sm text-gray-400">por partido</p>
+              </div>
+
+              <div className="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">Asistencias</h3>
+                  <Calendar className="w-5 h-5 text-purple-500" />
+                </div>
+                <div className="text-3xl font-bold text-white mb-2">
+                  {seasonAverages?.ast?.toFixed(1) || 'N/A'}
+                </div>
+                <p className="text-sm text-gray-400">por partido</p>
+              </div>
+
+              <div className="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">FG%</h3>
+                  <Trophy className="w-5 h-5 text-orange-500" />
+                </div>
+                <div className="text-3xl font-bold text-white mb-2">
+                  {seasonAverages?.fg_pct ? (seasonAverages.fg_pct * 100).toFixed(1) + '%' : 'N/A'}
+                </div>
+                <p className="text-sm text-gray-400">efectividad</p>
+              </div>
             </div>
           </div>
 
