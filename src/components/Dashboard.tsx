@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { ChevronDown, ArrowUpDown, User, LogOut } from 'lucide-react';
 import LoadingSpinner from './LoadingSpinner';
 import { BalldontlieAPI } from '@balldontlie/sdk';
@@ -71,6 +72,7 @@ interface PropBet {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const [propBets, setPropBets] = useState<PropBet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -211,6 +213,11 @@ export default function Dashboard() {
   const handleLogout = () => {
     localStorage.removeItem('user');
     window.location.href = '/login';
+  };
+
+  // Handle player click
+  const handlePlayerClick = (playerId: number) => {
+    router.push(`/player/${playerId}`);
   };
 
 
@@ -372,7 +379,7 @@ export default function Dashboard() {
       <div className="bg-neutral-800 border-b border-neutral-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold text-white">NBA Prop Betting Dashboard</h1>
+            <h1 className="text-lg font-semibold text-white">NBA Props</h1>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
@@ -601,7 +608,11 @@ export default function Dashboard() {
               </thead>
               <tbody className="divide-y divide-neutral-700">
                 {filteredAndSortedPropBets.map((bet) => (
-                  <tr key={bet.id} className="hover:bg-neutral-800 transition-colors">
+                  <tr 
+                    key={bet.id} 
+                    className="hover:bg-neutral-800 transition-colors cursor-pointer"
+                    onClick={() => handlePlayerClick(bet.player.id)}
+                  >
                     <td className="px-2 py-1 text-sm">
                       <div>
                         <div className="font-medium flex items-center gap-2">
