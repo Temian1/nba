@@ -262,6 +262,25 @@ export default function Dashboard() {
     }
     if (selectedProps !== 'all') {
       filtered = filtered.filter(bet => bet.propType === selectedProps);
+    } else {
+      // When "all" is selected, show only one prop per player (default to points)
+      const playerMap = new Map();
+      filtered.forEach(bet => {
+        const playerId = bet.player.id;
+        if (!playerMap.has(playerId)) {
+          // Prioritize points, then rebounds, then assists, etc.
+          const priority = ['pts', 'reb', 'ast', 'stl', 'blk', 'fg3m'];
+          const currentPriority = priority.indexOf(bet.propType);
+          playerMap.set(playerId, { bet, priority: currentPriority });
+        } else {
+          const existing = playerMap.get(playerId);
+          const newPriority = ['pts', 'reb', 'ast', 'stl', 'blk', 'fg3m'].indexOf(bet.propType);
+          if (newPriority < existing.priority) {
+            playerMap.set(playerId, { bet, priority: newPriority });
+          }
+        }
+      });
+      filtered = Array.from(playerMap.values()).map(item => item.bet);
     }
 
     // Apply sorting
