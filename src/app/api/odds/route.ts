@@ -8,10 +8,28 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
     const gameId = searchParams.get('game_id');
+    const playerId = searchParams.get('playerId');
+
+    // Handle player prop odds request
+    if (playerId) {
+      // Mock player prop odds for testing
+      const mockOdds = [
+        { book: 'FanDuel', line: 8.5, overPrice: '+120', underPrice: '-110' },
+        { book: 'DraftKings', line: 8.5, overPrice: '+115', underPrice: '-105' },
+        { book: 'BetMGM', line: 8.5, overPrice: '+110', underPrice: '-115' },
+        { book: 'Caesars', line: 8.5, overPrice: '+125', underPrice: '-120' },
+        { book: 'PointsBet', line: 8.5, overPrice: '+118', underPrice: '-108' }
+      ];
+      
+      return NextResponse.json({
+        success: true,
+        odds: mockOdds
+      });
+    }
 
     if (!date && !gameId) {
       return NextResponse.json(
-        { success: false, error: 'Either date or game_id parameter is required' },
+        { success: false, error: 'Either date, game_id, or playerId parameter is required' },
         { status: 400 }
       );
     }
